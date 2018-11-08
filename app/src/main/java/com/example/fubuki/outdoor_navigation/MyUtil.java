@@ -131,4 +131,52 @@ public class MyUtil {
 
         return angle;
     }
+
+
+    public static int calculateIntersectionOfRings(GpsPoint p1, GpsPoint p2, double e){
+        //e为d的误差
+        //外环相切
+        LatLng temp1 = new LatLng(p1.getLatitude(), p1.getLongitude());
+        LatLng temp2 = new LatLng(p2.getLatitude(), p2.getLongitude());
+        double centerDistance = DistanceUtil.getDistance(temp1,temp2);
+        double d1 = p1.getDistance(),
+               d2 = p2.getDistance();
+        //外切不相交
+        if(centerDistance > (d1 + d2 + 2*e)){
+            return 0;
+        }
+
+        //外切
+        if(centerDistance == (d1 + d2 + 2*e)){
+            return 1;
+        }
+
+        //内切不相交
+        if(d1 > d2){
+            if(centerDistance < d1 - d2 - 2*e)
+                return 0;
+        }else if(d1 < d2){
+            if(centerDistance < d2 - d1 - 2*e)
+                return 0;
+        }
+
+        //内切
+        if(d1 > d2){
+            if(centerDistance == d1 - d2 - 2*e)
+                return 1;
+        }else if(d1 < d2){
+            if(centerDistance == d2 - d1 - 2*e)
+                return 1;
+        }
+
+        if(centerDistance == d1 + d2)
+            return 2;
+
+        if((centerDistance > d1 + d2) && (centerDistance < d1 + d2 + 2*e)){
+            return 2;
+        }
+
+
+        return 0;
+    }
 }

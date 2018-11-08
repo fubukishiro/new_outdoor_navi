@@ -307,11 +307,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         LatLng p2 = new LatLng(lastNodeLatitude,lastNodeLongitude);
         LatLng p3 = new LatLng(prevSampleLatitude,prevSampleLongitude);
 
-        Log.e(TAG,"前一次采样坐标："+prevSampleLatitude+"#"+prevSampleLongitude);
-        Log.e(TAG,"距离目标节点："+DistanceUtil.getDistance(p1,p2));
-        Log.e(TAG,"距离上次采样："+DistanceUtil.getDistance(p1,p3));
+        //Log.e(TAG,"前一次采样坐标："+prevSampleLatitude+"#"+prevSampleLongitude);
+        //Log.e(TAG,"距离目标节点："+DistanceUtil.getDistance(p1,p2));
+        //Log.e(TAG,"距离上次采样："+DistanceUtil.getDistance(p1,p3));
         if((DistanceUtil.getDistance(p1,p2) < 10 || DistanceUtil.getDistance(p1,p3) > 5) && prevSampleLatitude>0 && prevSampleLongitude>0){
-            Log.e(TAG,"检测到距离小于10米或大于旧的位置10米");
+            //Log.e(TAG,"检测到距离小于10米或大于旧的位置10米");
             if(bluetoothGattCharacteristic != null) {
                 synchronized (token) {
                     try {
@@ -355,7 +355,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 Log.e(TAG,"x:"+nodePosition.getX()+"   "+"y:"+nodePosition.getY());
 
                 if( isNaN(nodePosition.getY()) || isNaN(nodePosition.getX()) || nodePosition.getY()==0.0 || nodePosition.getX()==0.0) {
-                    Log.e(TAG,"计算出的距离是NaN，需要左拐或右拐");
+                    //Log.e(TAG,"计算出的距离是NaN，需要左拐或右拐");
                     Message tempMsg = new Message();
                     tempMsg.what = NO_POINT;
                     handler.sendMessage(tempMsg);
@@ -372,7 +372,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 Node returnNode = gpsPointSet.getPoints();
                 List<OverlayOptions> options = new ArrayList<OverlayOptions>();
                 for(int m = 0; m < returnNode.getSize();m++){
-                    Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
+                    //Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
                     LatLng point = new LatLng(returnNode.getPoint(m).getY(), returnNode.getPoint(m).getX());
 
                     BitmapDescriptor bitmap = BitmapDescriptorFactory
@@ -482,7 +482,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             //Point nodePosition = gpsPointSet.getNodePosition();
             //Point nodePosition = gpsPointSet.varianceGetNodePosition();
             Point nodePosition = gpsPointSet.countGetNodePosition(currentGpsPoint,rcvDis);
-            Log.e(TAG,"x:"+nodePosition.getX()+"   "+"y:"+nodePosition.getY());
+            //Log.e(TAG,"x:"+nodePosition.getX()+"   "+"y:"+nodePosition.getY());
 
             lastNodeLatitude = nodePosition.getY();
             lastNodeLongitude = nodePosition.getX();
@@ -491,7 +491,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 prevSampleLongitude = currentLongitude;
                 prevSampleLatitude = currentLatitude;
                 if(isNaN(lastNodeLatitude) || isNaN(lastNodeLongitude)){
-                    Log.e(TAG,"第二次采样计算出NaN");
+                    //Log.e(TAG,"第二次采样计算出NaN");
                     Message tempMsg = new Message();
                     tempMsg.what = TURN_AROUND;
                     handler.sendMessage(tempMsg);
@@ -548,7 +548,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         .icon(bitmap);
 
                 mBaiduMap.addOverlay(option);*/
-                Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
+                //Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
                 LatLng point = new LatLng(returnNode.getPoint(m).getY(), returnNode.getPoint(m).getX());
 
                 OverlayOptions textOption1 = new TextOptions()
@@ -706,7 +706,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 String[] strs = pattern.split(msgStr);
 
                 rcvDis = convertToDouble(strs[1],0);
-                Log.e(TAG,"接收到的距离："+rcvDis);
+                Log.e(TAG,"蓝牙接收到的距离："+rcvDis);
 
                 if(distanceArray.size() > 100){
                     distanceArray.clear();
@@ -719,7 +719,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         isReverse = false;
                         delayCount = 0;
                     }
-                    Log.e(TAG,"真的往回走了！");
+                    //Log.e(TAG,"真的往回走了！");
                 }else if(distanceArray.size()>5){
                     if(MyUtil.judgeTrend2(distanceArray)){
                         Message tempMsg = new Message();
@@ -845,7 +845,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 for(int m = 0;m<gpsPointSet.getNodeNumber();m++){
                     LatLng temp = new LatLng(gpsPointSet.getGpsPoint(m).getLatitude(), gpsPointSet.getGpsPoint(m).getLongitude());
                     gpsTrace.add(temp);
-                    Log.e(TAG,"第"+m+"个采样点："+gpsPointSet.getGpsPoint(m).getLatitude()+"/"+gpsPointSet.getGpsPoint(m).getLongitude());
+                    //Log.e(TAG,"第"+m+"个采样点："+gpsPointSet.getGpsPoint(m).getLatitude()+"/"+gpsPointSet.getGpsPoint(m).getLongitude());
                     if(m%4 == 0){
                         colors.add(Integer.valueOf(Color.BLUE));
                     }else if(m%4 == 1){
@@ -895,20 +895,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         double distance = DistanceUtil.getDistance(p1,p2);
 
-        Log.e(TAG,"fisrtDistance:"+firstLatitude+" "+firstLongitude);
-        Log.e(TAG,"currentDistance:"+currentLatitude+" "+currentLongitude);
-        Log.e(TAG,"实测距离"+distance);
+        //Log.e(TAG,"fisrtDistance:"+firstLatitude+" "+firstLongitude);
+        //Log.e(TAG,"currentDistance:"+currentLatitude+" "+currentLongitude);
+        //Log.e(TAG,"实测距离"+distance);
 
         if(distance > 10.0){
             //TODO
             //此处是距离大于十米的操作
-            Log.e(TAG,"第二次采样！");
+            //Log.e(TAG,"第二次采样！");
             getLocation();
           if(bluetoothGattCharacteristic != null) {
               synchronized (token) {
                   try {
                       token.setFlag(true);
-                      Log.e(TAG, "线程挂起");
+                      Log.e(TAG, "线程挂起，等待接受蓝牙距离");
                       token.wait();
                   } catch (InterruptedException e) {
                       e.printStackTrace();

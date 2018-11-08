@@ -192,15 +192,19 @@ public class GpsNode {
         ArrayList<Point> pointArray = new ArrayList<>();
         ArrayList<double[]> dataArr = new ArrayList<>();
         //TODO:目前只有三个点的两两组合
+        pointArray.clear();
         for(int i = 0; i < 2; i++){
-            pointArray.clear();
+            //pointArray.clear();
             Point temp[] = getNodePoint(tmpGPSPointArr.get(i), tmpGPSPointArr.get(i+1));
             pointArray.add(temp[0]);
             pointArray.add(temp[1]);
-            StatisticData tempData = new StatisticData();
-            double tempStatisData[] = tempData.getStatisticData(pointArray);
-            dataArr.add(tempStatisData);
+            //StatisticData tempData = new StatisticData();
+            //double tempStatisData[] = tempData.getStatisticData(pointArray);
+            //dataArr.add(tempStatisData);
         }
+        VarianceMethod tempVarMethod = new VarianceMethod();
+        tempVarMethod.combineNodePoint(0,2,pointArray);
+        dataArr = tempVarMethod.nodeDataArr;
         int minIndex = 0;
         double min = Double.MAX_VALUE;
         for(int i = 0;i < dataArr.size();i++){
@@ -222,6 +226,7 @@ public class GpsNode {
         }
         VarianceMethod mVarianceMethod = new VarianceMethod();
         mVarianceMethod.combineGPSPoint(0,3, gpsPointArray);
+       // mVarianceMethod.linearCombineGPSPoint(gpsPointArray); //此处可以修改组合方法
         return mVarianceMethod.countNode(currentGpsPoint, 15, rcvDis*1.5);
     }
 

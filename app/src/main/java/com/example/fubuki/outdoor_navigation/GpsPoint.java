@@ -48,7 +48,7 @@ public class GpsPoint {
 
         //此处调用百度地图API获取两个点之间的距离，单位是米
         double distance = DistanceUtil.getDistance(p1,p2);
-        Log.e("Distance","Distance:"+distance);
+        //Log.e("Distance","Distance:"+distance);
         return DistanceUtil.getDistance(p1,p2);
     }
     /*根据两个GPS点计算出两个节点Point*/
