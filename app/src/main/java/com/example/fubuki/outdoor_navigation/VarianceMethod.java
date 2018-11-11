@@ -35,7 +35,7 @@ public class VarianceMethod {
         if(k == 1){
             for (int i = index; i < gpsPointArray.size(); i++) {
                 this.tmpGPSPointArr.add(gpsPointArray.get(i));
-                this.gpsDataArr.add(GpsNode.newGetNodePoint(this.tmpGPSPointArr)); //这个方法是找方差最小化算的
+                this.gpsDataArr.add(new GpsNode().newGetNodePoint(this.tmpGPSPointArr)); //这个方法是找方差最小化算的
                 //this.gpsDataArr.add(GpsNode.minimizeGetNodePoint(this.tmpGPSPointArr,1));  //这个是通过修正距离找方差最小化
                 //this.gpsDataArr.add(GpsNode.minimizeGetNodePoint2(this.tmpGPSPointArr,1)); //这个2方法可以保存本次算出来的distance
                 this.tmpGPSPointArr.remove((Object)gpsPointArray.get(i));
@@ -60,7 +60,7 @@ public class VarianceMethod {
             tmpGPSPointArr.add(gpsPointArray.get(i+step));
             tmpGPSPointArr.add(gpsPointArray.get(i+step*2));
             //this.gpsDataArr.add(GpsNode.minimizeGetNodePoint(this.tmpGPSPointArr,3));
-            this.gpsDataArr.add(GpsNode.newGetNodePoint(this.tmpGPSPointArr)); //这个方法是找方差最小化算的
+            this.gpsDataArr.add(new GpsNode().newGetNodePoint(this.tmpGPSPointArr)); //这个方法是找方差最小化算的
             //this.gpsDataArr.add(GpsNode.minimizeGetNodePoint2(this.tmpGPSPointArr,3)); //这个2方法可以保存本次算出来的distance
         }
     }
@@ -98,6 +98,7 @@ public class VarianceMethod {
                 maxIndex = j;
             }
         }
+        GpsNode.getReturnNode().addPoint(new Point(sumX[maxIndex]/nodeNumCount[maxIndex], sumY[maxIndex]/nodeNumCount[maxIndex]));
         return new Point(sumX[maxIndex]/nodeNumCount[maxIndex], sumY[maxIndex]/nodeNumCount[maxIndex]);
     }
 }
