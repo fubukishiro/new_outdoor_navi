@@ -179,4 +179,17 @@ public class MyUtil {
 
         return 0;
     }
+
+    public static GpsPoint searchMinPoint(GpsNode blindPointSet){
+        int minIndex = 0;
+        double minDis = Double.MAX_VALUE;
+        for(int i = 0; i < blindPointSet.getNodeNumber(); i++){
+            if(blindPointSet.getGpsPoint(i).getDistance() < minDis){
+                minIndex = i;
+                minDis = blindPointSet.getGpsPoint(i).getDistance();
+            }
+        }
+
+        return blindPointSet.getGpsPoint(minIndex);
+    }
 }

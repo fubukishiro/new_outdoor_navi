@@ -74,8 +74,10 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import static com.example.fubuki.outdoor_navigation.MyUtil.calculateAngle;
+import static com.example.fubuki.outdoor_navigation.MyUtil.searchMinPoint;
 import static java.lang.Double.NaN;
 import static java.lang.Double.isNaN;
+import static java.lang.Double.min;
 
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener,View.OnClickListener{
@@ -103,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private List<Object> locationTuple = new ArrayList<Object>(); //保存定位触发的三元组
 
     private GpsNode gpsPointSet;
-
+    private GpsNode blindSearchGpsPointSet; //盲走阶段的GPS序列
     //蓝牙
     private List<String> bluetoothDevices = new ArrayList<String>(); //保存搜索到的列表
     private ArrayAdapter<String> arrayAdapter; //ListView的适配器
@@ -133,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final int TURN_AROUND = 8;
     private static final int TURN_REVERSE = 9;
     private static final int NO_POINT = 10;
-
+    private static final int TOO_FAR = 11;
     private double rcvDis; //从终端接收回来的距离
 
     private int positionNumber;
@@ -171,6 +173,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private List<Double> distanceArray = new ArrayList<Double>();//存放接收的距离序列
     private static boolean isReverse = false;
     private static int delayCount = 0;
+
+    private static double validDistance = 30;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -324,7 +328,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }
             Log.e(TAG,"线程重新恢复 in checkDistance");
-            GpsPoint currentGpsPoint = new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber());
+            //接收距离小于30才添加
+            if(rcvDis < 30) {
+                GpsPoint currentGpsPoint = new GpsPoint(currentLongitude, currentLatitude, orientationValues[0], rcvDis, gpsPointSet.getNodeNumber());
             /*double deltaD = Math.abs(gpsPointSet.getGpsPoint(gpsPointSet.getNodeNumber()-1).getDistance() - rcvDis);
             LatLng p4 = new LatLng(currentLatitude,currentLongitude);
             LatLng p5 = new LatLng(prevSampleLatitude,prevSampleLongitude);
@@ -347,61 +353,61 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     return;
                 }
             }*/
-            gpsPointSet.addGpsPoint(currentGpsPoint);
-            Log.e(TAG,"当前采样的GPS点相关信息："+currentGpsPoint.getLatitude()+"#"+currentGpsPoint.getLongitude()+"#当前接收到的距离:"+rcvDis);
-            if(gpsPointSet.getNodeNumber() > 2){
-                //Point nodePosition = gpsPointSet.getNodePosition();
-                //Point nodePosition = gpsPointSet.varianceGetNodePosition();
-                Point nodePosition = gpsPointSet.countGetNodePosition(currentGpsPoint,rcvDis);
-                Log.e(TAG,"x:"+nodePosition.getX()+"   "+"y:"+nodePosition.getY());
+                gpsPointSet.addGpsPoint(currentGpsPoint);
+                Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
+                if (gpsPointSet.getNodeNumber() > 2) {
+                    //Point nodePosition = gpsPointSet.getNodePosition();
+                    //Point nodePosition = gpsPointSet.varianceGetNodePosition();
+                    Point nodePosition = gpsPointSet.countGetNodePosition(currentGpsPoint, rcvDis);
+                    Log.e(TAG, "x:" + nodePosition.getX() + "   " + "y:" + nodePosition.getY());
 
-                if( isNaN(nodePosition.getY()) || isNaN(nodePosition.getX()) || nodePosition.getY()==0.0 || nodePosition.getX()==0.0) {
-                    //Log.e(TAG,"计算出的距离是NaN，需要左拐或右拐");
-                    Message tempMsg = new Message();
-                    tempMsg.what = NO_POINT;
-                    handler.sendMessage(tempMsg);
-                    return;
-                }else{
-                    lastNodeLatitude = nodePosition.getY();
-                    lastNodeLongitude = nodePosition.getX();
-                }
-                prevSampleLatitude = currentLatitude;
-                prevSampleLongitude = currentLongitude;
+                    if (isNaN(nodePosition.getY()) || isNaN(nodePosition.getX()) || nodePosition.getY() == 0.0 || nodePosition.getX() == 0.0) {
+                        //Log.e(TAG,"计算出的距离是NaN，需要左拐或右拐");
+                        Message tempMsg = new Message();
+                        tempMsg.what = NO_POINT;
+                        handler.sendMessage(tempMsg);
+                        return;
+                    } else {
+                        lastNodeLatitude = nodePosition.getY();
+                        lastNodeLongitude = nodePosition.getX();
+                    }
+                    prevSampleLatitude = currentLatitude;
+                    prevSampleLongitude = currentLongitude;
 
-                //TODO:要显示在屏幕上
-                mBaiduMap.clear();
-                //Node returnNode = gpsPointSet.getPoints();
-                Node returnNode = gpsPointSet.getReturnNode();
-                List<OverlayOptions> options = new ArrayList<OverlayOptions>();
-                for(int m = 0; m < returnNode.getSize();m++){
-                    //Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
-                    LatLng point = new LatLng(returnNode.getPoint(m).getY(), returnNode.getPoint(m).getX());
+                    //TODO:要显示在屏幕上
+                    mBaiduMap.clear();
+                    //Node returnNode = gpsPointSet.getPoints();
+                    Node returnNode = gpsPointSet.getReturnNode();
+                    List<OverlayOptions> options = new ArrayList<OverlayOptions>();
+                    for (int m = 0; m < returnNode.getSize(); m++) {
+                        //Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
+                        LatLng point = new LatLng(returnNode.getPoint(m).getY(), returnNode.getPoint(m).getX());
 
-                    BitmapDescriptor bitmap = BitmapDescriptorFactory
-                            .fromResource(R.drawable.icon_temp);
+                        BitmapDescriptor bitmap = BitmapDescriptorFactory
+                                .fromResource(R.drawable.icon_temp);
 
-                    OverlayOptions textOption1 = new TextOptions()
-                            .bgColor(0xAAFFFF00)
-                            .fontSize(24)
-                            .fontColor(0xFFFF00FF)
-                            .text(Integer.toString(m))
-                            .position(point);
-                    mBaiduMap.addOverlay(textOption1);
+                        OverlayOptions textOption1 = new TextOptions()
+                                .bgColor(0xAAFFFF00)
+                                .fontSize(24)
+                                .fontColor(0xFFFF00FF)
+                                .text(Integer.toString(m))
+                                .position(point);
+                        mBaiduMap.addOverlay(textOption1);
 
+                        OverlayOptions option = new MarkerOptions()
+                                .position(point)
+                                .icon(bitmap);
+                        options.add(option);
+                    }
+                    LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
+                    BitmapDescriptor bitmap;
+                    bitmap = BitmapDescriptorFactory
+                            .fromResource(R.drawable.icon_en);
                     OverlayOptions option = new MarkerOptions()
                             .position(point)
                             .icon(bitmap);
                     options.add(option);
-                }
-                LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
-                BitmapDescriptor bitmap;
-                bitmap = BitmapDescriptorFactory
-                        .fromResource(R.drawable.icon_en);
-                OverlayOptions option = new MarkerOptions()
-                        .position(point)
-                        .icon(bitmap);
-                options.add(option);
-                mBaiduMap.addOverlays(options);
+                    mBaiduMap.addOverlays(options);
                 /*LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
 
                 BitmapDescriptor bitmap;
@@ -423,19 +429,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 mBaiduMap.addOverlay(option);*/
 
-                LatLng llText = new LatLng(nodePosition.getY(), nodePosition.getX());
+                    LatLng llText = new LatLng(nodePosition.getY(), nodePosition.getX());
 
 //构建文字Option对象，用于在地图上添加文字
-                OverlayOptions textOption = new TextOptions()
-                        .bgColor(0xAAFFFF00)
-                        .fontSize(24)
-                        .fontColor(0xFFFF00FF)
-                        .text(Integer.toString(positionNumber++))
-                        .position(llText);
+                    OverlayOptions textOption = new TextOptions()
+                            .bgColor(0xAAFFFF00)
+                            .fontSize(24)
+                            .fontColor(0xFFFF00FF)
+                            .text(Integer.toString(positionNumber++))
+                            .position(llText);
 
 //在地图上添加该文字对象并显示
-                mBaiduMap.addOverlay(textOption);
-            }else{}
+                    mBaiduMap.addOverlay(textOption);
+                } else {
+                }
+            }
         }
     }
 
@@ -715,7 +723,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if(distanceArray.size() > 100){
                     distanceArray.clear();
                 }
-                distanceArray.add(rcvDis);
+                if(rcvDis > 0)
+                    distanceArray.add(rcvDis);
+
+                if(rcvDis > 70){
+                    Message tempMsg = new Message();
+                    tempMsg.what = TOO_FAR;
+                    handler.sendMessage(tempMsg);
+                }
+                //盲走序列添加
+                blindSearchGpsPointSet.addGpsPoint(new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber()));
 
                 if(isReverse){
                     delayCount ++;
@@ -723,7 +740,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         isReverse = false;
                         delayCount = 0;
                     }
-                    //Log.e(TAG,"真的往回走了！");
                 }else if(distanceArray.size()>5){
                     if(MyUtil.judgeTrend2(distanceArray)){
                         Message tempMsg = new Message();
@@ -946,7 +962,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     distanceText.setText("距离信息："+rcvDis);
                     break;
                 case MOVE_FORWARD:
-                    Toast.makeText(MainActivity.this,"请向前走十米",Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this,"请随机走",Toast.LENGTH_LONG).show();
                     break;
                 case NEW_SAMPLE:
                     Toast.makeText(MainActivity.this,"请走到下一个采样点",Toast.LENGTH_LONG).show();
@@ -959,6 +975,30 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     break;
                 case NO_POINT:
                     Toast.makeText(MainActivity.this,"暂时算不出节点，请左拐或右拐",Toast.LENGTH_SHORT).show();
+                    break;
+                case TOO_FAR:
+                    GpsPoint minBlindPoint = searchMinPoint(blindSearchGpsPointSet);
+                    LatLng minPoint = new LatLng(minBlindPoint.getLatitude(),minBlindPoint.getLongitude());
+                    //小于有效距离认定可靠，添加！
+                    if(minBlindPoint.getDistance() < validDistance){
+                        gpsPointSet.addGpsPoint(minBlindPoint);
+                    }
+                    mBaiduMap.clear();
+                    BitmapDescriptor bitmap = BitmapDescriptorFactory
+                            .fromResource(R.drawable.icon_temp);
+
+                    OverlayOptions textOption1 = new TextOptions()
+                            .bgColor(0xAAFFFF00)
+                            .fontSize(24)
+                            .fontColor(0xFFFF00FF)
+                            .position(minPoint);
+                    mBaiduMap.addOverlay(textOption1);
+
+                    OverlayOptions option = new MarkerOptions()
+                            .position(minPoint)
+                            .icon(bitmap);
+                    mBaiduMap.addOverlay(option);
+                    Toast.makeText(MainActivity.this,"请回到提示点",Toast.LENGTH_SHORT).show();
                     break;
                 default:
                     break;
