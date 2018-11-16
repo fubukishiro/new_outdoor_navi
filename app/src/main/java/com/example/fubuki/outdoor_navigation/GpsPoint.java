@@ -12,6 +12,7 @@ public class GpsPoint {
     private double longitude;   //采样点经度
     private double latitude;    //采样点纬度
     private double distance;    //采样点采集的距离
+    private double count=0;
     public static final double k1 = 96029;
     public static final double k2 = 112000;
 
@@ -40,6 +41,8 @@ public class GpsPoint {
     }
     public double getDistance(){return distance;}
     public void setDistance(double setDis){ this.distance = setDis; }
+    public void addCount(){this.count++;}
+    public double getCount(){return count;}
     /*返回两个手机采样点点之间的距离*/
     public double getDistanceFromNextPoint(GpsPoint nextGpsPoint)
     {
