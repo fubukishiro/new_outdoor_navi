@@ -49,7 +49,7 @@ public class MyUtil {
         double d3 = gpsNodeSet.getGpsPoint(currentNum - 3).getDistance();
         double d4 = gpsNodeSet.getGpsPoint(currentNum - 4).getDistance();
 
-        Log.e("distance judge","distance is:"+d1+"#"+d2+"#"+d3+"#"+d4);
+        //Log.e("distance judge","distance is:"+d1+"#"+d2+"#"+d3+"#"+d4);
         int ascendCount = 0;
         if(d1 - d2 > 0)
             ascendCount++;

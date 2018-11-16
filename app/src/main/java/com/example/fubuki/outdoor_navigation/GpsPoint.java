@@ -12,16 +12,21 @@ public class GpsPoint {
     private double longitude;   //采样点经度
     private double latitude;    //采样点纬度
     private double distance;    //采样点采集的距离
+
     private double count=0;
+
+    private int number;
+
     public static final double k1 = 96029;
     public static final double k2 = 112000;
 
-    GpsPoint(double pLongitude,double pLatitude,double pAngle,double pDistance)
+    GpsPoint(double pLongitude,double pLatitude,double pAngle,double pDistance, int pNumber)
     {
         angle = pAngle;
         latitude = pLatitude;
         longitude = pLongitude;
         distance = pDistance;
+        number = pNumber;
     }
 
     GpsPoint(double pLongitude,double pLatitude, double pDistance)
@@ -41,8 +46,12 @@ public class GpsPoint {
     }
     public double getDistance(){return distance;}
     public void setDistance(double setDis){ this.distance = setDis; }
+
     public void addCount(){this.count++;}
     public double getCount(){return count;}
+
+    public int getIndex(){ return this.number;}
+
     /*返回两个手机采样点点之间的距离*/
     public double getDistanceFromNextPoint(GpsPoint nextGpsPoint)
     {
@@ -72,7 +81,7 @@ public class GpsPoint {
         pointAngle = Math.acos(T);
         //用gps点的数据计算夹角
 
-        GpsPoint P0 = new GpsPoint(this.getLongitude(),otherGpsPoint.getLatitude(),0,0);
+        GpsPoint P0 = new GpsPoint(this.getLongitude(),otherGpsPoint.getLatitude(),0);
         double L01 = P0.getDistanceFromNextPoint(this);
         double L12 = distanceToNextPoint;
         double cosa = L01/L12;

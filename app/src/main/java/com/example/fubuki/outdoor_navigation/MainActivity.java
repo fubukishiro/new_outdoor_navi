@@ -324,7 +324,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }
             Log.e(TAG,"线程重新恢复 in checkDistance");
-            GpsPoint currentGpsPoint = new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis);
+            GpsPoint currentGpsPoint = new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber());
             /*double deltaD = Math.abs(gpsPointSet.getGpsPoint(gpsPointSet.getNodeNumber()-1).getDistance() - rcvDis);
             LatLng p4 = new LatLng(currentLatitude,currentLongitude);
             LatLng p5 = new LatLng(prevSampleLatitude,prevSampleLongitude);
@@ -348,6 +348,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }*/
             gpsPointSet.addGpsPoint(currentGpsPoint);
+            Log.e(TAG,"当前采样的GPS点相关信息："+currentGpsPoint.getLatitude()+"#"+currentGpsPoint.getLongitude()+"#当前接收到的距离:"+rcvDis);
             if(gpsPointSet.getNodeNumber() > 2){
                 //Point nodePosition = gpsPointSet.getNodePosition();
                 //Point nodePosition = gpsPointSet.varianceGetNodePosition();
@@ -369,7 +370,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 //TODO:要显示在屏幕上
                 mBaiduMap.clear();
-                Node returnNode = gpsPointSet.getPoints();
+                //Node returnNode = gpsPointSet.getPoints();
+                Node returnNode = gpsPointSet.getReturnNode();
                 List<OverlayOptions> options = new ArrayList<OverlayOptions>();
                 for(int m = 0; m < returnNode.getSize();m++){
                     //Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
@@ -463,7 +465,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private void getLocation(){
         Log.e(TAG,"相关信息:"+currentLatitude+" "+currentLongitude+" "+orientationValues[0]+" "+rcvDis);
-        GpsPoint currentGpsPoint = new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis);
+        GpsPoint currentGpsPoint = new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber());
         /*double deltaD = Math.abs(gpsPointSet.getGpsPoint(gpsPointSet.getNodeNumber()-1).getDistance() - rcvDis);
         LatLng p1 = new LatLng(currentLatitude,currentLongitude);
         LatLng p2 = new LatLng(prevSampleLatitude,prevSampleLongitude);
@@ -478,6 +480,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Log.e(TAG,"不符合添加规则，不更新");
         }*/
         gpsPointSet.addGpsPoint(currentGpsPoint);
+        Log.e(TAG,"当前采样的GPS点相关信息："+currentGpsPoint.getLatitude()+"#"+currentGpsPoint.getLongitude()+"#当前接收到的距离:"+rcvDis);
         if(gpsPointSet.getNodeNumber() > 2){
             //Point nodePosition = gpsPointSet.getNodePosition();
             //Point nodePosition = gpsPointSet.varianceGetNodePosition();
@@ -500,7 +503,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             //要显示在屏幕上
             mBaiduMap.clear();
-            Node returnNode = gpsPointSet.getPoints();
+            //Node returnNode = gpsPointSet.getPoints();
+            Node returnNode = gpsPointSet.getReturnNode();
             List<OverlayOptions> options = new ArrayList<OverlayOptions>();
             /*LatLng testPoint = new LatLng(30.266996, 120.127323);
             LatLng testPoint2 = new LatLng(30.267996, 120.128323);
@@ -877,8 +881,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 //GpsPoint currentGpsPoint = new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis);
                 //gpsPointSet.addGpsPoint(currentGpsPoint);
 
-                LatLng ll = new LatLng(location.getLatitude(),
-                        location.getLongitude());
+                LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
                 MapStatus.Builder builder = new MapStatus.Builder();
                 builder.target(ll).zoom(18.0f);
                 mBaiduMap.animateMapStatus(MapStatusUpdateFactory.newMapStatus(builder.build()));

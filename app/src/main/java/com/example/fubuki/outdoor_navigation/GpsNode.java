@@ -21,7 +21,7 @@ public class GpsNode {
     private ArrayList<GpsPoint> reliablePoint = new ArrayList<>();
     private Node loraNode = new Node();
 
-    private Node returnNode = new Node();
+    private static Node returnNode = new Node();
 
     private Node result = new Node();
     /*增加新的手机采样点*/
@@ -32,6 +32,10 @@ public class GpsNode {
     public GpsPoint getGpsPoint(int index)
     {
         return gpsPointArray.get(index);
+    }
+    public static Node getReturnNode()
+    {
+        return returnNode;
     }
     private int getSize(){return  gpsPointArray.size();}
     /*从手机采样点计算获取LoRa节点*/
@@ -199,16 +203,19 @@ public class GpsNode {
         return result;
     }
 
-    public static double[] newGetNodePoint(ArrayList<GpsPoint> tmpGPSPointArr){
+    public double[] newGetNodePoint(ArrayList<GpsPoint> tmpGPSPointArr){
         ArrayList<Point> pointArray = new ArrayList<>();
         ArrayList<double[]> dataArr = new ArrayList<>();
         //TODO:目前只有三个点的两两组合
         pointArray.clear();
+        Log.e("newGetNodePoint","当前采样组合："+tmpGPSPointArr.get(0).getIndex()+" "+tmpGPSPointArr.get(0).getLatitude()+" "+tmpGPSPointArr.get(0).getLongitude()+"#"+tmpGPSPointArr.get(1).getIndex()+" "+tmpGPSPointArr.get(1).getLatitude()+" "+tmpGPSPointArr.get(1).getLongitude()+"#"+tmpGPSPointArr.get(2).getIndex()+" "+tmpGPSPointArr.get(2).getLatitude()+" "+tmpGPSPointArr.get(2        ).getLongitude());
         for(int i = 0; i < 2; i++){
             //pointArray.clear();
             Point temp[] = getNodePoint(tmpGPSPointArr.get(i), tmpGPSPointArr.get(i+1));
             pointArray.add(temp[0]);
             pointArray.add(temp[1]);
+            //returnNode.addPoint(temp[0]);
+            //returnNode.addPoint(temp[1]);
             //StatisticData tempData = new StatisticData();
             //double tempStatisData[] = tempData.getStatisticData(pointArray);
             //dataArr.add(tempStatisData);
@@ -224,6 +231,8 @@ public class GpsNode {
                 min = dataArr.get(i)[4];
             }
         }
+        //returnNode.addPoint(new Point(dataArr.get(minIndex)[0],dataArr.get(minIndex)[1]));
+        Log.e("GpsNode","本次算出的最小的方差及经纬度："+dataArr.get(minIndex)[4]+"#"+dataArr.get(minIndex)[0]+"#"+dataArr.get(minIndex)[1]);
         return dataArr.get(minIndex);
     }
 
