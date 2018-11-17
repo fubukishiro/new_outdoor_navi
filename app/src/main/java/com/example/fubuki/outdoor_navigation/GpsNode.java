@@ -236,7 +236,7 @@ public class GpsNode {
         return dataArr.get(minIndex);
     }
 
-    //最小二乘法求解这个组合得到的待定位点
+    //最小二乘法求解迭代的初始点
     public static Point lsGetNodePoint(ArrayList<GpsPoint> tmpGPSPointArr){
         int rowNumber=tmpGPSPointArr.size()-1;//组合内的点数
         double matrixA[][] = new double[rowNumber][2];
@@ -251,18 +251,26 @@ public class GpsNode {
         RealMatrix matrixB1 = new Array2DRowRealMatrix(matrixB);
         RealMatrix temp = matrixA1.transpose();
         temp = temp.multiply(matrixA1);
-        temp = inverse(temp).multiply(matrixA1.transpose());
-        temp = temp.multiply(matrixB1);
-        double point[][] = temp.getData();
-        return new Point(point[0][0],point[1][0]);
+        try{
+            temp = inverse(temp).multiply(matrixA1.transpose());
+            temp = temp.multiply(matrixB1);
+            double point[][] = temp.getData();
+            return new Point(point[0][0],point[1][0]);
+        }catch(Exception e){
+            Log.e("leastSquare","奇异矩阵");
+            return new Point((tmpGPSPointArr.get(0).getLongitude()+tmpGPSPointArr.get(1).getLongitude()+tmpGPSPointArr.get(2).getLongitude())/3,(tmpGPSPointArr.get(0).getLatitude()+tmpGPSPointArr.get(1).getLatitude()+tmpGPSPointArr.get(2).getLatitude())/3);
+        }
+
     }
 
     //牛顿迭代法求解这个组合得到的待定位点
     public static Point newtonIteration(ArrayList<GpsPoint> tmpGPSPointArr){
         //迭代初始点
-        double x = (tmpGPSPointArr.get(0).getLongitude()+tmpGPSPointArr.get(1).getLongitude()+tmpGPSPointArr.get(2).getLongitude())/3;
-        double y = (tmpGPSPointArr.get(0).getLatitude()+tmpGPSPointArr.get(1).getLatitude()+tmpGPSPointArr.get(2).getLatitude())/3;
-        //最大迭代次数100次
+        double x = lsGetNodePoint(tmpGPSPointArr).getX();
+        double y = lsGetNodePoint(tmpGPSPointArr).getY();
+        /*double x = (tmpGPSPointArr.get(0).getLongitude()+tmpGPSPointArr.get(1).getLongitude()+tmpGPSPointArr.get(2).getLongitude())/3;
+        double y = (tmpGPSPointArr.get(0).getLatitude()+tmpGPSPointArr.get(1).getLatitude()+tmpGPSPointArr.get(2).getLatitude())/3;*/
+        //最大迭代次数50次
         int t;
         for(t=0;t<50;t++){
             x=x-obj(x,y,tmpGPSPointArr)/dfx1(x,y,tmpGPSPointArr);
@@ -273,7 +281,10 @@ public class GpsNode {
                 break;
             }
         }
-        Log.e("leastSquare","当前组合的迭代次数:"+(t+1));
+        if(t==50){
+            Log.e("leastSquare","迭代满50次,无效");
+            return new Point(NaN,NaN);
+        }
         return new Point(x,y);
 
     }
@@ -367,41 +378,43 @@ public class GpsNode {
             reliablePoint.add(reliableGPSPoint1);
             reliablePoint.add(reliableGPSPoint2);
             reliablePoint.add(reliableGPSPoint3);
+            Point loraPoint = newtonIteration(reliablePoint);
+            if(loraPoint.getX()==NaN&&loraPoint.getY()==NaN){
+                return new Point(NaN,NaN);
+            }
             //下面都是方便调试的，正式用的时候可以去掉
-            Log.e("leastSquare","仅三个点:"+reliablePoint.get(0).getLongitude()+","+reliablePoint.get(0).getLatitude()+","+reliablePoint.get(0).getDistance()+"-"+reliablePoint.get(1).getLongitude()+","+reliablePoint.get(1).getLatitude()+","+reliablePoint.get(1).getDistance()+"-"+reliablePoint.get(2).getLongitude()+","+reliablePoint.get(2).getLatitude()+","+reliablePoint.get(2).getDistance());
-            Log.e("leastSquare","仅三点的count值:"+reliablePoint.get(0).getCount()+"-"+reliablePoint.get(1).getCount()+"-"+reliablePoint.get(2).getCount());
-            //Log.e("leastSquare","仅三点算出的节点位置:"+lsGetNodePoint(reliablePoint).getX()+"-"+lsGetNodePoint(reliablePoint).getY());
-            Log.e("leastSquare","仅三点算出的节点位置:"+newtonIteration(reliablePoint).getX()+"-"+newtonIteration(reliablePoint).getY());
-            //LatLng p1 = new LatLng(lsGetNodePoint(reliablePoint).getY(),lsGetNodePoint(reliablePoint).getX());
-            LatLng p1 = new LatLng(newtonIteration(reliablePoint).getY(),newtonIteration(reliablePoint).getX());
+            //Log.e("leastSquare","仅三个点:"+reliablePoint.get(0).getLongitude()+","+reliablePoint.get(0).getLatitude()+","+reliablePoint.get(0).getDistance()+"-"+reliablePoint.get(1).getLongitude()+","+reliablePoint.get(1).getLatitude()+","+reliablePoint.get(1).getDistance()+"-"+reliablePoint.get(2).getLongitude()+","+reliablePoint.get(2).getLatitude()+","+reliablePoint.get(2).getDistance());
+            //Log.e("leastSquare","仅三点的count值:"+reliablePoint.get(0).getCount()+"-"+reliablePoint.get(1).getCount()+"-"+reliablePoint.get(2).getCount());
+            Log.e("leastSquare","仅三点算出的节点位置:"+loraPoint.getX()+"-"+loraPoint.getY());
+            LatLng p1 = new LatLng(loraPoint.getY(),loraPoint.getX());
             double totalDiff = 0;
             for(int t=0;t<3;t++){
                 LatLng p2 = new LatLng(reliablePoint.get(t).getLatitude(),reliablePoint.get(t).getLongitude());
                 totalDiff = totalDiff+Math.abs(DistanceUtil.getDistance(p1,p2)-reliablePoint.get(t).getDistance());
             }
-            Log.e("leastSquare","当前最可靠的组合的距离偏差和:"+totalDiff);
-
-            //return lsGetNodePoint(reliablePoint);//最小二乘法
-            return newtonIteration(reliablePoint);
+            Log.e("leastSquare","仅三个点组合的距离偏差和:"+totalDiff);
+            returnNode.addPoint(loraPoint);//显示在屏幕上
+            return loraPoint;
         }else{
             //gps点序列变化之后，找到新的最可靠的三个点
             reliablePoint = mVarianceMethod.reliableNode(reliablePoint,gpsPointArray);
+            Point loraPoint = newtonIteration(reliablePoint);
+            if(loraPoint.getX()==NaN&&loraPoint.getY()==NaN){
+                return new Point(NaN,NaN);
+            }
             //调试日志
-            Log.e("leastSquare","可靠的三个点:"+reliablePoint.get(0).getLongitude()+","+reliablePoint.get(0).getLatitude()+","+reliablePoint.get(0).getDistance()+"-"+reliablePoint.get(1).getLongitude()+","+reliablePoint.get(1).getLatitude()+","+reliablePoint.get(1).getDistance()+"-"+reliablePoint.get(2).getLongitude()+","+reliablePoint.get(2).getLatitude()+","+reliablePoint.get(2).getDistance());
-            Log.e("leastSquare","可靠三点的count值:"+reliablePoint.get(0).getCount()+"-"+reliablePoint.get(1).getCount()+"-"+reliablePoint.get(2).getCount());
-            //Log.e("leastSquare","可靠三点算出的节点位置:"+lsGetNodePoint(reliablePoint).getX()+"-"+lsGetNodePoint(reliablePoint).getY());
-            Log.e("leastSquare","可靠三点算出的节点位置:"+newtonIteration(reliablePoint).getX()+"-"+newtonIteration(reliablePoint).getY());
-            //LatLng p1 = new LatLng(lsGetNodePoint(reliablePoint).getY(),lsGetNodePoint(reliablePoint).getX());
-            LatLng p1 = new LatLng(newtonIteration(reliablePoint).getY(),newtonIteration(reliablePoint).getX());
+            //Log.e("leastSquare","可靠的三个点:"+reliablePoint.get(0).getLongitude()+","+reliablePoint.get(0).getLatitude()+","+reliablePoint.get(0).getDistance()+"-"+reliablePoint.get(1).getLongitude()+","+reliablePoint.get(1).getLatitude()+","+reliablePoint.get(1).getDistance()+"-"+reliablePoint.get(2).getLongitude()+","+reliablePoint.get(2).getLatitude()+","+reliablePoint.get(2).getDistance());
+            //Log.e("leastSquare","可靠三点的count值:"+reliablePoint.get(0).getCount()+"-"+reliablePoint.get(1).getCount()+"-"+reliablePoint.get(2).getCount());
+            Log.e("leastSquare","可靠三点算出的节点位置:"+loraPoint.getX()+"-"+loraPoint.getY());
+            LatLng p1 = new LatLng(loraPoint.getY(),loraPoint.getX());
             double totalDiff = 0;
             for(int t=0;t<3;t++){
                 LatLng p2 = new LatLng(reliablePoint.get(t).getLatitude(),reliablePoint.get(t).getLongitude());
                 totalDiff = totalDiff+Math.abs(DistanceUtil.getDistance(p1,p2)-reliablePoint.get(t).getDistance());
             }
             Log.e("leastSquare","当前最可靠的组合的距离偏差和:"+totalDiff);
-
-            //return GpsNode.lsGetNodePoint(reliablePoint);//最小二乘法
-            return newtonIteration(reliablePoint);
+            returnNode.addPoint(loraPoint);//显示在屏幕上
+            return loraPoint;
         }
     }
 

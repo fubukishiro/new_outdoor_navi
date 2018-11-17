@@ -234,7 +234,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         searchBLEBtn.setOnClickListener(this);
 
         gpsPointSet = new GpsNode();
-
+        blindSearchGpsPointSet = new GpsNode();
         positionNumber = 0;
 
         rcvDis = 0;
@@ -363,9 +363,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     if (isNaN(nodePosition.getY()) || isNaN(nodePosition.getX()) || nodePosition.getY() == 0.0 || nodePosition.getX() == 0.0) {
                         //Log.e(TAG,"计算出的距离是NaN，需要左拐或右拐");
-                        Message tempMsg = new Message();
-                        tempMsg.what = NO_POINT;
-                        handler.sendMessage(tempMsg);
+                        //Message tempMsg = new Message();
+                        //tempMsg.what = NO_POINT;
+                        //handler.sendMessage(tempMsg);
                         return;
                     } else {
                         lastNodeLatitude = nodePosition.getY();
@@ -377,7 +377,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     //TODO:要显示在屏幕上
                     mBaiduMap.clear();
                     //Node returnNode = gpsPointSet.getPoints();
-                    Node returnNode = gpsPointSet.getReturnNode();
+                    /*Node returnNode = gpsPointSet.getReturnNode();
                     List<OverlayOptions> options = new ArrayList<OverlayOptions>();
                     for (int m = 0; m < returnNode.getSize(); m++) {
                         //Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
@@ -407,16 +407,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             .position(point)
                             .icon(bitmap);
                     options.add(option);
-                    mBaiduMap.addOverlays(options);
-                /*LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
+                    mBaiduMap.addOverlays(options);*/
+                LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
 
                 BitmapDescriptor bitmap;
                 if(rcvDis > 5){
                     bitmap = BitmapDescriptorFactory
                             .fromResource(R.drawable.icon_temp);
-                    Message tempMsg = new Message();
+                    /*Message tempMsg = new Message();
                     tempMsg.what = NEW_SAMPLE;
-                    handler.sendMessage(tempMsg);
+                    handler.sendMessage(tempMsg);*/
 
                 }else{
                     bitmap = BitmapDescriptorFactory
@@ -427,7 +427,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         .position(point)
                         .icon(bitmap);
 
-                mBaiduMap.addOverlay(option);*/
+                mBaiduMap.addOverlay(option);
 
                     LatLng llText = new LatLng(nodePosition.getY(), nodePosition.getX());
 
@@ -474,46 +474,35 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private void getLocation(){
         Log.e(TAG,"相关信息:"+currentLatitude+" "+currentLongitude+" "+orientationValues[0]+" "+rcvDis);
         GpsPoint currentGpsPoint = new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber());
-        /*double deltaD = Math.abs(gpsPointSet.getGpsPoint(gpsPointSet.getNodeNumber()-1).getDistance() - rcvDis);
-        LatLng p1 = new LatLng(currentLatitude,currentLongitude);
-        LatLng p2 = new LatLng(prevSampleLatitude,prevSampleLongitude);
 
-        double distance = DistanceUtil.getDistance(p1,p2);
-        Log.e(TAG,"deltaD:"+deltaD);
-        Log.e(TAG,"distance:"+distance);
-        if(deltaD + 5 < distance ){
-            Log.e(TAG,"符合添加规则");
-            //gpsPointSet.addGpsPoint(currentGpsPoint);
-        }else{
-            Log.e(TAG,"不符合添加规则，不更新");
-        }*/
-        gpsPointSet.addGpsPoint(currentGpsPoint);
-        Log.e(TAG,"当前采样的GPS点相关信息："+currentGpsPoint.getLatitude()+"#"+currentGpsPoint.getLongitude()+"#当前接收到的距离:"+rcvDis);
-        if(gpsPointSet.getNodeNumber() > 2){
-            //Point nodePosition = gpsPointSet.getNodePosition();
-            //Point nodePosition = gpsPointSet.varianceGetNodePosition();
-            Point nodePosition = gpsPointSet.countGetNodePosition(currentGpsPoint,rcvDis);
-            //Log.e(TAG,"x:"+nodePosition.getX()+"   "+"y:"+nodePosition.getY());
+        if(rcvDis < validDistance) {
+            gpsPointSet.addGpsPoint(currentGpsPoint);
+            Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
+            if (gpsPointSet.getNodeNumber() > 2) {
+                //Point nodePosition = gpsPointSet.getNodePosition();
+                //Point nodePosition = gpsPointSet.varianceGetNodePosition();
+                Point nodePosition = gpsPointSet.countGetNodePosition(currentGpsPoint, rcvDis);
+                //Log.e(TAG,"x:"+nodePosition.getX()+"   "+"y:"+nodePosition.getY());
 
-            lastNodeLatitude = nodePosition.getY();
-            lastNodeLongitude = nodePosition.getX();
+                lastNodeLatitude = nodePosition.getY();
+                lastNodeLongitude = nodePosition.getX();
 
-            if(isSecondPoint){
-                prevSampleLongitude = currentLongitude;
-                prevSampleLatitude = currentLatitude;
-                if(isNaN(lastNodeLatitude) || isNaN(lastNodeLongitude)){
-                    //Log.e(TAG,"第二次采样计算出NaN");
-                    Message tempMsg = new Message();
-                    tempMsg.what = TURN_AROUND;
-                    handler.sendMessage(tempMsg);
+                if (isSecondPoint) {
+                    prevSampleLongitude = currentLongitude;
+                    prevSampleLatitude = currentLatitude;
+                    if (isNaN(lastNodeLatitude) || isNaN(lastNodeLongitude)) {
+                        //Log.e(TAG,"第二次采样计算出NaN");
+                        Message tempMsg = new Message();
+                        tempMsg.what = TURN_AROUND;
+                        handler.sendMessage(tempMsg);
+                    }
                 }
-            }
 
-            //要显示在屏幕上
-            mBaiduMap.clear();
-            //Node returnNode = gpsPointSet.getPoints();
-            Node returnNode = gpsPointSet.getReturnNode();
-            List<OverlayOptions> options = new ArrayList<OverlayOptions>();
+                //要显示在屏幕上
+                mBaiduMap.clear();
+                //Node returnNode = gpsPointSet.getPoints();
+                Node returnNode = gpsPointSet.getReturnNode();
+                List<OverlayOptions> options = new ArrayList<OverlayOptions>();
             /*LatLng testPoint = new LatLng(30.266996, 120.127323);
             LatLng testPoint2 = new LatLng(30.267996, 120.128323);
             LatLng llText1 = new LatLng(30.266996, 120.127323);
@@ -549,8 +538,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
 //在地图上添加该文字对象并显示
             mBaiduMap.addOverlay(textOption2);*/
-            for(int m = 0; m<returnNode.getSize();m++) {
-                /*LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
+                //for (int m = 0; m < returnNode.getSize(); m++) {
+                LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
 
                 BitmapDescriptor bitmap = BitmapDescriptorFactory
                         .fromResource(R.drawable.icon_temp);
@@ -559,49 +548,51 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         .position(point)
                         .icon(bitmap);
 
-                mBaiduMap.addOverlay(option);*/
-                //Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
-                LatLng point = new LatLng(returnNode.getPoint(m).getY(), returnNode.getPoint(m).getX());
+                mBaiduMap.addOverlay(option);
+                    //Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
+                    /*LatLng point = new LatLng(returnNode.getPoint(m).getY(), returnNode.getPoint(m).getX());
 
-                OverlayOptions textOption1 = new TextOptions()
-                        .bgColor(0xAAFFFF00)
-                        .fontSize(24)
-                        .fontColor(0xFFFF00FF)
-                        .text(Integer.toString(m))
-                        .position(point);
-                mBaiduMap.addOverlay(textOption1);
+                    OverlayOptions textOption1 = new TextOptions()
+                            .bgColor(0xAAFFFF00)
+                            .fontSize(24)
+                            .fontColor(0xFFFF00FF)
+                            .text(Integer.toString(m))
+                            .position(point);
+                    mBaiduMap.addOverlay(textOption1);
 
-                BitmapDescriptor bitmap = BitmapDescriptorFactory
-                        .fromResource(R.drawable.icon_temp);
+                    BitmapDescriptor bitmap = BitmapDescriptorFactory
+                            .fromResource(R.drawable.icon_temp);
 
+                    OverlayOptions option = new MarkerOptions()
+                            .position(point)
+                            .icon(bitmap);
+                    options.add(option);
+                }
+                //mBaiduMap.addOverlays(options);
+                LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
+                BitmapDescriptor bitmap;
+                bitmap = BitmapDescriptorFactory
+                        .fromResource(R.drawable.icon_en);
                 OverlayOptions option = new MarkerOptions()
                         .position(point)
                         .icon(bitmap);
                 options.add(option);
-            }
-            //mBaiduMap.addOverlays(options);
-            LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
-            BitmapDescriptor bitmap;
-            bitmap = BitmapDescriptorFactory
-                    .fromResource(R.drawable.icon_en);
-            OverlayOptions option = new MarkerOptions()
-                    .position(point)
-                    .icon(bitmap);
-            options.add(option);
-            mBaiduMap.addOverlays(options);
-            LatLng llText = new LatLng(nodePosition.getY(), nodePosition.getX());
+                mBaiduMap.addOverlays(options);
+                LatLng llText = new LatLng(nodePosition.getY(), nodePosition.getX());
 
 //构建文字Option对象，用于在地图上添加文字
-            OverlayOptions textOption = new TextOptions()
-                    .bgColor(0xAAFFFF00)
-                    .fontSize(24)
-                    .fontColor(0xFFFF00FF)
-                    .text(Integer.toString(positionNumber++))
-                    .position(llText);
+                OverlayOptions textOption = new TextOptions()
+                        .bgColor(0xAAFFFF00)
+                        .fontSize(24)
+                        .fontColor(0xFFFF00FF)
+                        .text(Integer.toString(positionNumber++))
+                        .position(llText);
 
 //在地图上添加该文字对象并显示
-            mBaiduMap.addOverlay(textOption);
-        }else{}
+                mBaiduMap.addOverlay(textOption);*/
+            } else {
+            }
+        }
     }
     public void onClick(View view){
         switch(view.getId()){
@@ -736,7 +727,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 if(isReverse){
                     delayCount ++;
-                    if(delayCount > 4) {
+                    if(delayCount > 6) {
                         isReverse = false;
                         delayCount = 0;
                     }
@@ -998,7 +989,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             .position(minPoint)
                             .icon(bitmap);
                     mBaiduMap.addOverlay(option);
-                    Toast.makeText(MainActivity.this,"请回到提示点",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this,"请回到提示点，换一个方向走",Toast.LENGTH_SHORT).show();
                     break;
                 default:
                     break;
@@ -1018,46 +1009,5 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
     }
-
-    /*@Override
-    public void onGetGeoCodeResult(GeoCodeResult result) {
-        if (result == null || result.error != SearchResult.ERRORNO.NO_ERROR) {
-            Toast.makeText(MainActivity.this, "抱歉，未能找到结果", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        mBaiduMap.clear();
-        mBaiduMap.addOverlay(new MarkerOptions()
-                .position(result.getLocation())
-                .icon(BitmapDescriptorFactory.fromResource(R.drawable.icon_marka)));
-
-        mBaiduMap.setMapStatus(MapStatusUpdateFactory.newLatLng(result.getLocation()));
-        String strInfo = String.format("纬度：%f 经度：%f",
-                result.getLocation().latitude,
-                result.getLocation().longitude);
-
-        Toast.makeText(MainActivity.this, strInfo, Toast.LENGTH_LONG).show();
-
-        Log.e("GeoCodeDemo", "onGetGeoCodeResult = " + result.toString());
-    }
-
-    @Override
-    public void onGetReverseGeoCodeResult(ReverseGeoCodeResult result) {
-        if (result == null || result.error != SearchResult.ERRORNO.NO_ERROR) {
-            Toast.makeText(MainActivity.this, "抱歉，未能找到结果", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        /*mBaiduMap.clear();
-        mBaiduMap.addOverlay(new MarkerOptions()
-                .position(result.getLocation())
-                .icon(BitmapDescriptorFactory.fromResource(R.drawable.icon_marka)));
-
-        mBaiduMap.setMapStatus(MapStatusUpdateFactory.newLatLng(result.getLocation()));
-
-        Toast.makeText(MainActivity.this, result.getAddress() + " adcode: " + result.getAdcode(), Toast.LENGTH_LONG).show();
-
-        Log.e("GeoCodeDemo", "ReverseGeoCodeResult = " + result.toString());
-    }*/
 
 }

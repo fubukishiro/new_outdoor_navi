@@ -120,7 +120,7 @@ public class VarianceMethod {
                     LatLng p2 = new LatLng(this.tmpGPSPointArr.get(t).getLatitude(),this.tmpGPSPointArr.get(t).getLongitude());
                     totalDiff = totalDiff+Math.abs(DistanceUtil.getDistance(p1,p2)-this.tmpGPSPointArr.get(t).getDistance());
                 }
-                Log.e("leastSquare","当前组合的距离偏差和:"+totalDiff);
+                //Log.e("leastSquare","当前组合的距离偏差和:"+totalDiff);
                 if(totalDiff>thre){
                     //超过阈值打标记
                     for(int t=0;t<3;t++){
