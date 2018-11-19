@@ -13,7 +13,7 @@ public class GpsPoint {
     private double latitude;    //采样点纬度
     private double distance;    //采样点采集的距离
 
-    private double count=0;
+    private double count=0;     //坏点标记
 
     private int number;
 

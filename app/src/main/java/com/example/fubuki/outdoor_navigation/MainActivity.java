@@ -344,7 +344,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (gpsPointSet.getNodeNumber() > 2) {
 
                     //TODO:计算节点位置的函数接口
-                    Point nodePosition = gpsPointSet.countGetNodePosition(currentGpsPoint, rcvDis);
+                    Point nodePosition = gpsPointSet.getNodePosition();
 
                     if (isNaN(nodePosition.getY()) || isNaN(nodePosition.getX()) || nodePosition.getY() == 0.0 || nodePosition.getX() == 0.0) {
                         //计算出的点是NaN或者0的时候，不更新位置
@@ -426,7 +426,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             gpsPointSet.addGpsPoint(currentGpsPoint);
             //Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
             if (gpsPointSet.getNodeNumber() > 2) {
-                Point nodePosition = gpsPointSet.countGetNodePosition(currentGpsPoint, rcvDis);
+                Point nodePosition = gpsPointSet.getNodePosition();
 
                 lastNodeLatitude = nodePosition.getY();
                 lastNodeLongitude = nodePosition.getX();
