@@ -16,15 +16,7 @@ public class Point {
         x = px;
         y = py;
     }
-    //get the sum of x + y
-    public double getSum()
-    {
-        return x + y;
-    }
-    public double getSub()
-    {
-        return  x - y;
-    }
+
     public double getX()
     {
         return x;
@@ -32,14 +24,6 @@ public class Point {
     public double getY()
     {
         return y;
-    }
-    public boolean getSide()
-    {
-        return side;
-    }
-    public void setSide(boolean pSide)
-    {
-        side = pSide;
     }
 }
 

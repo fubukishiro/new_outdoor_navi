@@ -73,7 +73,7 @@ import java.util.TimerTask;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import static com.example.fubuki.outdoor_navigation.MyUtil.calculateAngle;
+import static com.example.fubuki.outdoor_navigation.MyUtil.convertToDouble;
 import static com.example.fubuki.outdoor_navigation.MyUtil.searchMinPoint;
 import static java.lang.Double.NaN;
 import static java.lang.Double.isNaN;
@@ -89,8 +89,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     public MyLocationListenner myListener = new MyLocationListenner();
 
-    boolean isFirstLoc = true; // 是否首次定位
-
     private SensorManager sm;
     //需要两个Sensor
     private Sensor aSensor;
@@ -102,7 +100,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private final String TAG = "Activity";
 
-    private List<Object> locationTuple = new ArrayList<Object>(); //保存定位触发的三元组
 
     private GpsNode gpsPointSet;
     private GpsNode blindSearchGpsPointSet; //盲走阶段的GPS序列
@@ -136,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final int TURN_REVERSE = 9;
     private static final int NO_POINT = 10;
     private static final int TOO_FAR = 11;
+
     private double rcvDis; //从终端接收回来的距离
 
     private int positionNumber;
@@ -164,11 +162,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private boolean isFirstDistance = true;
     private boolean isSecondPoint = true;
 
-    //画线测试
     private Polyline mPolyline;
-
-    //反编码测试
-    private static GeoCoder mSearch = null;
 
     private List<Double> distanceArray = new ArrayList<Double>();//存放接收的距离序列
     private static boolean isReverse = false;
@@ -214,10 +208,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         sm.registerListener(mySensorListener, aSensor, SensorManager.SENSOR_DELAY_NORMAL);
         sm.registerListener(mySensorListener, mSensor,SensorManager.SENSOR_DELAY_NORMAL);
 
-        //更新显示数据的方法
+        //地图指南针方向计算
         calculateOrientation();
 
-        //蓝牙
+        //蓝牙相关
         // 检查手机是否支持BLE，不支持则退出
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, "您的设备不支持蓝牙BLE，将关闭", Toast.LENGTH_SHORT).show();
@@ -230,25 +224,33 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), 0);  // 弹对话框的形式提示用户开启蓝牙
         }
 
+        //搜索蓝牙的按钮
         Button searchBLEBtn = findViewById(R.id.searchBtn);
         searchBLEBtn.setOnClickListener(this);
 
-        gpsPointSet = new GpsNode();
-        blindSearchGpsPointSet = new GpsNode();
+        gpsPointSet = new GpsNode();   //计算用的gps点序列
+        blindSearchGpsPointSet = new GpsNode();  //盲走阶段的gps点序列
         positionNumber = 0;
 
         rcvDis = 0;
 
-        //定时相关
+        //当前经纬度存储
         currentLatitude = 0;
         currentLongitude = 0;
+
+        //用于记录第一次采集的GPS点的经纬度
         firstLatitude = 0;
         firstLongitude = 0;
+
+        //上一次计算出的可能节电的经纬度
         lastNodeLatitude = 0;
         lastNodeLongitude = 0;
+
+        //上一次采样点的经纬度
         prevSampleLatitude = 0;
         prevSampleLongitude = 0;
 
+        //定时检测距离
         locationTask = new TimerTask() {
             @Override
             public void run() {
@@ -261,18 +263,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }
         };
+
         locationTimer.schedule(locationTask, 1000, 2000);
 
+        //用于线程挂起
         token = new Token();
         if(!token.getFlag())
             Log.e("A","the token flag value is null");
         else
             Log.e("A","the token flag value is"+token.getFlag());
 
-        //mSearch = GeoCoder.newInstance();
-       // mSearch.setOnGetGeoCodeResultListener(this);
     }
 
+    //传感器监听初始化
     final SensorEventListener mySensorListener = new SensorEventListener() {
         public void onSensorChanged(SensorEvent sensorEvent) {
             if (sensorEvent.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
@@ -284,7 +287,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     };
 
-    private  void calculateOrientation() {
+    //计算指南针指向
+    private void calculateOrientation() {
         float[] values = new float[3];
         float[] R = new float[9];
         SensorManager.getRotationMatrix(R, null, accelerometerValues, magneticFieldValues);
@@ -306,16 +310,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         handler.sendMessage(tempMsg);
     }
 
+    //检查距离，判断是否采样
     private void checkDistance(){
         LatLng p1 = new LatLng(currentLatitude,currentLongitude);
         LatLng p2 = new LatLng(lastNodeLatitude,lastNodeLongitude);
         LatLng p3 = new LatLng(prevSampleLatitude,prevSampleLongitude);
 
-        //Log.e(TAG,"前一次采样坐标："+prevSampleLatitude+"#"+prevSampleLongitude);
-        //Log.e(TAG,"距离目标节点："+DistanceUtil.getDistance(p1,p2));
-        //Log.e(TAG,"距离上次采样："+DistanceUtil.getDistance(p1,p3));
+        //当 当前位置距离计算出的可能节点位置小于10米 或者 距离上次采样点大于5米（已走五米）时，进行新一次的采样
         if((DistanceUtil.getDistance(p1,p2) < 10 || DistanceUtil.getDistance(p1,p3) > 5) && prevSampleLatitude>0 && prevSampleLongitude>0){
-            //Log.e(TAG,"检测到距离小于10米或大于旧的位置10米");
+            //等待最新的蓝牙发送过来的距离
             if(bluetoothGattCharacteristic != null) {
                 synchronized (token) {
                     try {
@@ -327,45 +330,24 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }
                 }
             }
+
             Log.e(TAG,"线程重新恢复 in checkDistance");
-            //接收距离小于30才添加
+
+            //当接收距离小于30米，才把当前GPS添加进去
             if(rcvDis < 30) {
                 GpsPoint currentGpsPoint = new GpsPoint(currentLongitude, currentLatitude, orientationValues[0], rcvDis, gpsPointSet.getNodeNumber());
-            /*double deltaD = Math.abs(gpsPointSet.getGpsPoint(gpsPointSet.getNodeNumber()-1).getDistance() - rcvDis);
-            LatLng p4 = new LatLng(currentLatitude,currentLongitude);
-            LatLng p5 = new LatLng(prevSampleLatitude,prevSampleLongitude);
 
-            double distance = DistanceUtil.getDistance(p4,p5);
-            Log.e(TAG,"deltaD:"+deltaD);
-            Log.e(TAG,"distance:"+distance);
-            if(deltaD < distance ){
-                Log.e(TAG,"符合添加规则");
-                //gpsPointSet.addGpsPoint(currentGpsPoint);
-            }else{
-                Log.e(TAG,"不符合添加规则，不更新");
-            }*/
-            /*if(gpsPointSet.getNodeNumber() > 3){
-                if(MyUtil.judgeTrend(gpsPointSet,rcvDis)) {
-                    Log.e("distance judge","反方向！");
-                    Message tempMsg = new Message();
-                    tempMsg.what = TURN_REVERSE;
-                    handler.sendMessage(tempMsg);
-                    return;
-                }
-            }*/
                 gpsPointSet.addGpsPoint(currentGpsPoint);
-                Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
+                //Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
+
+                //当计算用的采样gps序列中的点数大于2时，计算位置
                 if (gpsPointSet.getNodeNumber() > 2) {
-                    //Point nodePosition = gpsPointSet.getNodePosition();
-                    //Point nodePosition = gpsPointSet.varianceGetNodePosition();
+
+                    //TODO:计算节点位置的函数接口
                     Point nodePosition = gpsPointSet.countGetNodePosition(currentGpsPoint, rcvDis);
-                    Log.e(TAG, "x:" + nodePosition.getX() + "   " + "y:" + nodePosition.getY());
 
                     if (isNaN(nodePosition.getY()) || isNaN(nodePosition.getX()) || nodePosition.getY() == 0.0 || nodePosition.getX() == 0.0) {
-                        //Log.e(TAG,"计算出的距离是NaN，需要左拐或右拐");
-                        //Message tempMsg = new Message();
-                        //tempMsg.what = NO_POINT;
-                        //handler.sendMessage(tempMsg);
+                        //计算出的点是NaN或者0的时候，不更新位置
                         return;
                     } else {
                         lastNodeLatitude = nodePosition.getY();
@@ -374,64 +356,30 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     prevSampleLatitude = currentLatitude;
                     prevSampleLongitude = currentLongitude;
 
-                    //TODO:要显示在屏幕上
                     mBaiduMap.clear();
-                    //Node returnNode = gpsPointSet.getPoints();
-                    /*Node returnNode = gpsPointSet.getReturnNode();
-                    List<OverlayOptions> options = new ArrayList<OverlayOptions>();
-                    for (int m = 0; m < returnNode.getSize(); m++) {
-                        //Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
-                        LatLng point = new LatLng(returnNode.getPoint(m).getY(), returnNode.getPoint(m).getX());
 
-                        BitmapDescriptor bitmap = BitmapDescriptorFactory
-                                .fromResource(R.drawable.icon_temp);
-
-                        OverlayOptions textOption1 = new TextOptions()
-                                .bgColor(0xAAFFFF00)
-                                .fontSize(24)
-                                .fontColor(0xFFFF00FF)
-                                .text(Integer.toString(m))
-                                .position(point);
-                        mBaiduMap.addOverlay(textOption1);
-
-                        OverlayOptions option = new MarkerOptions()
-                                .position(point)
-                                .icon(bitmap);
-                        options.add(option);
-                    }
                     LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
+
                     BitmapDescriptor bitmap;
-                    bitmap = BitmapDescriptorFactory
-                            .fromResource(R.drawable.icon_en);
+
+                    //当手机位置距离计算出的节点位置小于10米并且接收到的距离小于5米时，显示终点，否则显示绿色的gps点
+                    if(rcvDis > 5){
+                        bitmap = BitmapDescriptorFactory
+                                .fromResource(R.drawable.icon_temp);
+                    }else{
+                        bitmap = BitmapDescriptorFactory
+                                .fromResource(R.drawable.icon_en);
+                    }
+
                     OverlayOptions option = new MarkerOptions()
                             .position(point)
                             .icon(bitmap);
-                    options.add(option);
-                    mBaiduMap.addOverlays(options);*/
-                LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
 
-                BitmapDescriptor bitmap;
-                if(rcvDis > 5){
-                    bitmap = BitmapDescriptorFactory
-                            .fromResource(R.drawable.icon_temp);
-                    /*Message tempMsg = new Message();
-                    tempMsg.what = NEW_SAMPLE;
-                    handler.sendMessage(tempMsg);*/
-
-                }else{
-                    bitmap = BitmapDescriptorFactory
-                            .fromResource(R.drawable.icon_en);
-                }
-
-                OverlayOptions option = new MarkerOptions()
-                        .position(point)
-                        .icon(bitmap);
-
-                mBaiduMap.addOverlay(option);
+                    mBaiduMap.addOverlay(option);
 
                     LatLng llText = new LatLng(nodePosition.getY(), nodePosition.getX());
 
-//构建文字Option对象，用于在地图上添加文字
+                    //构建文字Option对象，用于在地图上添加文字
                     OverlayOptions textOption = new TextOptions()
                             .bgColor(0xAAFFFF00)
                             .fontSize(24)
@@ -439,10 +387,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             .text(Integer.toString(positionNumber++))
                             .position(llText);
 
-//在地图上添加该文字对象并显示
+                    //在地图上添加该文字对象并显示
                     mBaiduMap.addOverlay(textOption);
-                } else {
-                }
+                } else {}
             }
         }
     }
@@ -471,18 +418,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mMapView.onPause();
     }
 
+    //此函数用于按钮点击，手动位置采集
     private void getLocation(){
-        Log.e(TAG,"相关信息:"+currentLatitude+" "+currentLongitude+" "+orientationValues[0]+" "+rcvDis);
         GpsPoint currentGpsPoint = new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber());
 
         if(rcvDis < validDistance) {
             gpsPointSet.addGpsPoint(currentGpsPoint);
-            Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
+            //Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
             if (gpsPointSet.getNodeNumber() > 2) {
-                //Point nodePosition = gpsPointSet.getNodePosition();
-                //Point nodePosition = gpsPointSet.varianceGetNodePosition();
                 Point nodePosition = gpsPointSet.countGetNodePosition(currentGpsPoint, rcvDis);
-                //Log.e(TAG,"x:"+nodePosition.getX()+"   "+"y:"+nodePosition.getY());
 
                 lastNodeLatitude = nodePosition.getY();
                 lastNodeLongitude = nodePosition.getX();
@@ -491,7 +435,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     prevSampleLongitude = currentLongitude;
                     prevSampleLatitude = currentLatitude;
                     if (isNaN(lastNodeLatitude) || isNaN(lastNodeLongitude)) {
-                        //Log.e(TAG,"第二次采样计算出NaN");
                         Message tempMsg = new Message();
                         tempMsg.what = TURN_AROUND;
                         handler.sendMessage(tempMsg);
@@ -500,45 +443,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 //要显示在屏幕上
                 mBaiduMap.clear();
-                //Node returnNode = gpsPointSet.getPoints();
-                Node returnNode = gpsPointSet.getReturnNode();
-                List<OverlayOptions> options = new ArrayList<OverlayOptions>();
-            /*LatLng testPoint = new LatLng(30.266996, 120.127323);
-            LatLng testPoint2 = new LatLng(30.267996, 120.128323);
-            LatLng llText1 = new LatLng(30.266996, 120.127323);
-            LatLng llText2 = new LatLng(30.267996, 120.128323);
-            BitmapDescriptor bitmapTest = BitmapDescriptorFactory
-                    .fromResource(R.drawable.icon_temp);
-            OverlayOptions option1 = new MarkerOptions()
-                    .position(testPoint)
-                    .icon(bitmapTest);
-            options.add(option1);
-            OverlayOptions option2 = new MarkerOptions()
-                    .position(testPoint2)
-                    .icon(bitmapTest);
-            options.add(option2);
 
-
-//构建文字Option对象，用于在地图上添加文字
-            OverlayOptions textOption1 = new TextOptions()
-                    .bgColor(0xAAFFFF00)
-                    .fontSize(24)
-                    .fontColor(0xFFFF00FF)
-                    .text(Integer.toString(1))
-                    .position(llText1);
-
-//在地图上添加该文字对象并显示
-            mBaiduMap.addOverlay(textOption1);
-            OverlayOptions textOption2 = new TextOptions()
-                    .bgColor(0xAAFFFF00)
-                    .fontSize(24)
-                    .fontColor(0xFFFF00FF)
-                    .text(Integer.toString(2))
-                    .position(llText2);
-
-//在地图上添加该文字对象并显示
-            mBaiduMap.addOverlay(textOption2);*/
-                //for (int m = 0; m < returnNode.getSize(); m++) {
                 LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
 
                 BitmapDescriptor bitmap = BitmapDescriptorFactory
@@ -549,51 +454,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         .icon(bitmap);
 
                 mBaiduMap.addOverlay(option);
-                    //Log.e(TAG,"第"+m+"个点："+returnNode.getPoint(m).getY()+"/"+returnNode.getPoint(m).getX());
-                    /*LatLng point = new LatLng(returnNode.getPoint(m).getY(), returnNode.getPoint(m).getX());
-
-                    OverlayOptions textOption1 = new TextOptions()
-                            .bgColor(0xAAFFFF00)
-                            .fontSize(24)
-                            .fontColor(0xFFFF00FF)
-                            .text(Integer.toString(m))
-                            .position(point);
-                    mBaiduMap.addOverlay(textOption1);
-
-                    BitmapDescriptor bitmap = BitmapDescriptorFactory
-                            .fromResource(R.drawable.icon_temp);
-
-                    OverlayOptions option = new MarkerOptions()
-                            .position(point)
-                            .icon(bitmap);
-                    options.add(option);
-                }
-                //mBaiduMap.addOverlays(options);
-                LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
-                BitmapDescriptor bitmap;
-                bitmap = BitmapDescriptorFactory
-                        .fromResource(R.drawable.icon_en);
-                OverlayOptions option = new MarkerOptions()
-                        .position(point)
-                        .icon(bitmap);
-                options.add(option);
-                mBaiduMap.addOverlays(options);
-                LatLng llText = new LatLng(nodePosition.getY(), nodePosition.getX());
-
-//构建文字Option对象，用于在地图上添加文字
-                OverlayOptions textOption = new TextOptions()
-                        .bgColor(0xAAFFFF00)
-                        .fontSize(24)
-                        .fontColor(0xFFFF00FF)
-                        .text(Integer.toString(positionNumber++))
-                        .position(llText);
-
-//在地图上添加该文字对象并显示
-                mBaiduMap.addOverlay(textOption);*/
             } else {
             }
         }
     }
+
+    //UI上的按钮点击进行监听
     public void onClick(View view){
         switch(view.getId()){
             case R.id.getLocation:
@@ -612,6 +478,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
+    //蓝牙选择的窗口弹出
     private void actionAlertDialog(){
         View bottomView = View.inflate(MainActivity.this,R.layout.ble_devices,null);//填充ListView布局
         ListView lvDevices = (ListView) bottomView.findViewById(R.id.device_list);//初始化ListView控件
@@ -658,21 +525,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         Log.i(TAG, "Attempting to start service discovery:"
                                 + gatt.discoverServices());
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
                         Log.i(TAG, "Fail to start service discovery:");
                         e.printStackTrace();
                     }
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    //setTitle("连接断开");
                 }
                 return;
             }
 
             @Override
             public void onServicesDiscovered(BluetoothGatt gatt, final int status) {
-                //此函数用于接收数据
+                //此函数用于接收蓝牙传来的数据
                 super.onServicesDiscovered(gatt, status);
-                Log.d(TAG, "Hi discovered!");
+
+                //使用的蓝牙的UUID
                 String service_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
                 String characteristic_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
 
@@ -698,33 +564,42 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
                 return;
             }
+
+            //接收到的蓝牙数据在这里做处理
             @Override
             public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic){
                 super.onCharacteristicChanged(gatt,characteristic);
                 //发现服务后的响应函数
                 byte[] bytesReceive = characteristic.getValue();
                 String msgStr = new String(bytesReceive);
-                //TODO:该正则匹配有问题，但目前可以忽视
+
+                //匹配接收的数据格式
                 Pattern pattern = Pattern.compile("[(?<=addr|dis) (?=end)]+");
                 String[] strs = pattern.split(msgStr);
 
                 rcvDis = convertToDouble(strs[1],0);
                 Log.e(TAG,"蓝牙接收到的距离："+rcvDis);
 
+                //距离序列大于100时清空
                 if(distanceArray.size() > 100){
                     distanceArray.clear();
                 }
+
+
                 if(rcvDis > 0)
                     distanceArray.add(rcvDis);
 
+                //当接收到的蓝牙距离过大时，提示用户回到一个起始点
                 if(rcvDis > 70){
                     Message tempMsg = new Message();
                     tempMsg.what = TOO_FAR;
                     handler.sendMessage(tempMsg);
                 }
-                //盲走序列添加
+
+                //盲走序列采样
                 blindSearchGpsPointSet.addGpsPoint(new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber()));
 
+                //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
                 if(isReverse){
                     delayCount ++;
                     if(delayCount > 6) {
@@ -732,13 +607,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         delayCount = 0;
                     }
                 }else if(distanceArray.size()>5){
-                    if(MyUtil.judgeTrend2(distanceArray)){
+                    if(MyUtil.judgeTrend(distanceArray)){
                         Message tempMsg = new Message();
                         tempMsg.what = TURN_REVERSE;
                         handler.sendMessage(tempMsg);
                         isReverse = true;
                     }
                 }
+
                 Message tempMsg = new Message();
                 tempMsg.what = NEW_DISTANCE;
                 handler.sendMessage(tempMsg);
@@ -766,7 +642,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     handler.sendMessage(tempMsg2);
                 }
 
-
                 return;
             }
         });
@@ -777,9 +652,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             super.onScanResult(callbackType, results);
             BluetoothDevice device = results.getDevice();
             if (!devices.contains(device)) {  //判断是否已经添加
-                devices.add(device);//也可以添加devices.getName()到列表，这里省略            }
-                // callbackType：回调类型
-                // result：扫描的结果，不包括传统蓝牙        }
+                devices.add(device);
+
                 bluetoothDevices.add(device.getName() + ":"
                         + device.getAddress() + "\n");
                 //更新字符串数组适配器，显示到listview中
@@ -811,30 +685,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             currentLatitude = location.getLatitude();
             currentLongitude = location.getLongitude();
 
-            LatLng ptCenter = new LatLng(currentLatitude, currentLongitude);
-           // mSearch.reverseGeoCode(new ReverseGeoCodeOption().location(ptCenter).newVersion(1).radius(500));
 
             if(lastNodeLatitude > 0.0 && lastNodeLongitude > 0.0){
-                //mBaiduMap.clear();
-                LatLng p1 = new LatLng(currentLatitude, currentLongitude);
-                LatLng p2 = new LatLng(lastNodeLatitude, lastNodeLongitude);
-                List<LatLng> points = new ArrayList<LatLng>();
-                points.add(p1);
-                points.add(p2);
-                OverlayOptions ooPolyline = new PolylineOptions().width(10)
-                        .color(0xAAFF0000).points(points);
-                //mPolyline = (Polyline) mBaiduMap.addOverlay(ooPolyline);
 
-                //重新画点？？？
                 LatLng point = new LatLng(lastNodeLatitude, lastNodeLongitude);
 
                 BitmapDescriptor bitmap;
                 if(rcvDis > 5){
                     bitmap = BitmapDescriptorFactory
                             .fromResource(R.drawable.icon_temp);
-                   // Message tempMsg = new Message();
-                   // tempMsg.what = NEW_SAMPLE;
-                   // handler.sendMessage(tempMsg);
 
                 }else{
                     bitmap = BitmapDescriptorFactory
@@ -848,15 +707,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 mBaiduMap.addOverlay(option);
                 //end
 
-
-                double angle = calculateAngle(lastNodeLatitude,lastNodeLongitude,currentLatitude,currentLongitude);
                 List<LatLng> gpsTrace = new ArrayList<LatLng>();
                 List<Integer> colors = new ArrayList<>();
 
+                //画出计算用的GPS序列的轨迹
                 for(int m = 0;m<gpsPointSet.getNodeNumber();m++){
                     LatLng temp = new LatLng(gpsPointSet.getGpsPoint(m).getLatitude(), gpsPointSet.getGpsPoint(m).getLongitude());
                     gpsTrace.add(temp);
-                    //Log.e(TAG,"第"+m+"个采样点："+gpsPointSet.getGpsPoint(m).getLatitude()+"/"+gpsPointSet.getGpsPoint(m).getLongitude());
+
                     if(m%4 == 0){
                         colors.add(Integer.valueOf(Color.BLUE));
                     }else if(m%4 == 1){
@@ -870,29 +728,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 OverlayOptions gpsPolyline = new PolylineOptions().width(10)
                         .colorsValues(colors).points(gpsTrace);
                 mPolyline = (Polyline) mBaiduMap.addOverlay(gpsPolyline);
-               /* MyLocationData nodeAngleData = new MyLocationData.Builder()
-                        .accuracy(location.getRadius())
-                        // 此处设置开发者获取到的方向信息，顺时针0-360
-                        .direction((float)angle).latitude(location.getLatitude())
-                        .longitude(location.getLongitude()).build();
-                mBaiduMap.setMyLocationData(nodeAngleData);*/
-
-               // MyLocationConfiguration nodeConfig = new MyLocationConfiguration(MyLocationConfiguration.LocationMode.NORMAL, true, BitmapDescriptorFactory.fromResource(R.drawable.black_arrow));
-                //mBaiduMap.setMyLocationConfiguration(nodeConfig);
 
             }
-            //开机采集一个点
-            if (isFirstLoc) {
-                isFirstLoc = false;
 
-                //GpsPoint currentGpsPoint = new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis);
-                //gpsPointSet.addGpsPoint(currentGpsPoint);
-
-                LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
-                MapStatus.Builder builder = new MapStatus.Builder();
-                builder.target(ll).zoom(18.0f);
-                mBaiduMap.animateMapStatus(MapStatusUpdateFactory.newMapStatus(builder.build()));
-            }
+            LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
+            MapStatus.Builder builder = new MapStatus.Builder();
+            builder.target(ll).zoom(18.0f);
+            mBaiduMap.animateMapStatus(MapStatusUpdateFactory.newMapStatus(builder.build()));
         }
 
         public void onReceivePoi(BDLocation poiLocation) {
@@ -905,14 +747,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         double distance = DistanceUtil.getDistance(p1,p2);
 
-        //Log.e(TAG,"fisrtDistance:"+firstLatitude+" "+firstLongitude);
-        //Log.e(TAG,"currentDistance:"+currentLatitude+" "+currentLongitude);
-        //Log.e(TAG,"实测距离"+distance);
-
         if(distance > 10.0){
-            //TODO
-            //此处是距离大于十米的操作
-            //Log.e(TAG,"第二次采样！");
             getLocation();
           if(bluetoothGattCharacteristic != null) {
               synchronized (token) {
@@ -970,26 +805,31 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 case TOO_FAR:
                     GpsPoint minBlindPoint = searchMinPoint(blindSearchGpsPointSet);
                     LatLng minPoint = new LatLng(minBlindPoint.getLatitude(),minBlindPoint.getLongitude());
-                    //小于有效距离认定可靠，添加！
+                    //小于有效距离认定可靠，添加
                     if(minBlindPoint.getDistance() < validDistance){
                         gpsPointSet.addGpsPoint(minBlindPoint);
                     }
-                    mBaiduMap.clear();
-                    BitmapDescriptor bitmap = BitmapDescriptorFactory
-                            .fromResource(R.drawable.icon_temp);
 
-                    OverlayOptions textOption1 = new TextOptions()
-                            .bgColor(0xAAFFFF00)
-                            .fontSize(24)
-                            .fontColor(0xFFFF00FF)
-                            .position(minPoint);
-                    mBaiduMap.addOverlay(textOption1);
+                    if(minBlindPoint.getDistance() > 70){
+                        Toast.makeText(MainActivity.this,"请在地图上寻找一个小于70米的位置，重新开始寻找",Toast.LENGTH_SHORT).show();
+                    }else{
+                        mBaiduMap.clear();
+                        BitmapDescriptor bitmap = BitmapDescriptorFactory
+                                .fromResource(R.drawable.hint_point);
 
-                    OverlayOptions option = new MarkerOptions()
-                            .position(minPoint)
-                            .icon(bitmap);
-                    mBaiduMap.addOverlay(option);
-                    Toast.makeText(MainActivity.this,"请回到提示点，换一个方向走",Toast.LENGTH_SHORT).show();
+                        OverlayOptions textOption1 = new TextOptions()
+                                .bgColor(0xAAFFFF00)
+                                .fontSize(24)
+                                .fontColor(0xFFFF00FF)
+                                .position(minPoint);
+                        mBaiduMap.addOverlay(textOption1);
+
+                        OverlayOptions option = new MarkerOptions()
+                                .position(minPoint)
+                                .icon(bitmap);
+                        mBaiduMap.addOverlay(option);
+                        Toast.makeText(MainActivity.this,"请回到提示点，换一个方向走",Toast.LENGTH_SHORT).show();
+                    }
                     break;
                 default:
                     break;
@@ -997,17 +837,5 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };//import android.os.Handler;
 
-    //string转float
-    public static double convertToDouble(String number, float defaultValue) {
-        if (TextUtils.isEmpty(number)) {
-            return defaultValue;
-        }
-        try {
-            return Double.parseDouble(number);
-        } catch (Exception e) {
-            return defaultValue;
-        }
-
-    }
 
 }
