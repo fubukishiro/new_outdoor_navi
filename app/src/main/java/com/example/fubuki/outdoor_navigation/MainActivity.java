@@ -122,6 +122,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private AlertDialog.Builder builder;
     private AlertDialog alertDialog;
 
+    private boolean isFirstLoc = true;
+
     private static final int UPDATE_STATUS= 1;
     private static final int DISCONN_BLE = 2;
     private static final int UPDATE_LIST = 3;
@@ -173,10 +175,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        Button searchBtn = findViewById(R.id.getLocation);
-
-        searchBtn.setOnClickListener(this);
 
         //获取地图控件引用
         mMapView = (MapView) findViewById(R.id.bmapView);
@@ -462,9 +460,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     //UI上的按钮点击进行监听
     public void onClick(View view){
         switch(view.getId()){
-            case R.id.getLocation:
-                getLocation();
-                break;
             case R.id.searchBtn: //蓝牙
                 if(bluetoothGatt == null){
                     actionAlertDialog();
@@ -731,10 +726,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             }
 
-            LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
-            MapStatus.Builder builder = new MapStatus.Builder();
-            builder.target(ll).zoom(18.0f);
-            mBaiduMap.animateMapStatus(MapStatusUpdateFactory.newMapStatus(builder.build()));
+            if (isFirstLoc) {
+                isFirstLoc = false;
+
+                LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
+                MapStatus.Builder builder = new MapStatus.Builder();
+                builder.target(ll).zoom(20.0f);
+                mBaiduMap.animateMapStatus(MapStatusUpdateFactory.newMapStatus(builder.build()));
+            }
         }
 
         public void onReceivePoi(BDLocation poiLocation) {
@@ -770,12 +769,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Button searchBtn = findViewById(R.id.searchBtn);
             switch (msg.what){
                 case UPDATE_STATUS:
-                    searchBtn.setText("断开蓝牙");
-                    searchBtn.setBackgroundResource(R.drawable.cancelbutton);
+                    searchBtn.setBackgroundResource(R.drawable.bluetooth);
                     break;
                 case DISCONN_BLE:
-                    searchBtn.setText("搜索蓝牙");
-                    searchBtn.setBackgroundResource(R.drawable.buttonshape);
+                    searchBtn.setBackgroundResource(R.drawable.bluetooth_red);
                     break;
                 case UPDATE_LIST:
                     arrayAdapter.notifyDataSetChanged();
@@ -785,10 +782,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     break;
                 case NEW_DISTANCE:
                     TextView distanceText = findViewById(R.id.distance);
-                    distanceText.setText("距离信息："+rcvDis);
+                    if(rcvDis > 70.0){
+                        distanceText.setText("信号强度：无信号"+rcvDis);
+                    }else if(rcvDis > 50.0){
+                        distanceText.setText("信号强度：弱"+rcvDis);
+                    }else if(rcvDis > 30.0){
+                        distanceText.setText("信号强度：中"+rcvDis);
+                    }else{
+                        distanceText.setText("信号强度：强"+rcvDis);
+                    }
+
                     break;
                 case MOVE_FORWARD:
-                    Toast.makeText(MainActivity.this,"请随机走",Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this,"请四处走动，寻找信号强度强的地方",Toast.LENGTH_LONG).show();
                     break;
                 case NEW_SAMPLE:
                     Toast.makeText(MainActivity.this,"请走到下一个采样点",Toast.LENGTH_LONG).show();
@@ -811,7 +817,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }
 
                     if(minBlindPoint.getDistance() > 70){
-                        Toast.makeText(MainActivity.this,"请在地图上寻找一个小于70米的位置，重新开始寻找",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this,"请在地图上寻找有信号的位置再重新寻找",Toast.LENGTH_SHORT).show();
                     }else{
                         mBaiduMap.clear();
                         BitmapDescriptor bitmap = BitmapDescriptorFactory
