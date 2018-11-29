@@ -75,6 +75,7 @@ import java.util.regex.Pattern;
 
 import static com.example.fubuki.outdoor_navigation.MyUtil.convertToDouble;
 import static com.example.fubuki.outdoor_navigation.MyUtil.searchMinPoint;
+import static java.lang.Double.MAX_VALUE;
 import static java.lang.Double.NaN;
 import static java.lang.Double.isNaN;
 import static java.lang.Double.min;
@@ -171,9 +172,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static boolean isReverse = false;
     private static int delayCount = 0;
 
-    private static double validDistance = 30;
+    private static double validDistance;
 
     private boolean isFinal = false;
+
+    private double minArrayDis;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -274,6 +277,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         else
             Log.e("A","the token flag value is"+token.getFlag());
 
+        minArrayDis = Double.MAX_VALUE;
+
     }
 
     //传感器监听初始化
@@ -335,7 +340,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Log.e(TAG,"线程重新恢复 in checkDistance");
 
             //当接收距离小于30米，才把当前GPS添加进去
-            if(rcvDis < 30) {
+            if(rcvDis < validDistance && rcvDis > 0) {
                 GpsPoint currentGpsPoint = new GpsPoint(currentLongitude, currentLatitude, orientationValues[0], rcvDis, gpsPointSet.getNodeNumber());
 
                 gpsPointSet.addGpsPoint(currentGpsPoint);
@@ -429,7 +434,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private void getLocation(){
         GpsPoint currentGpsPoint = new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber());
 
-        if(rcvDis < validDistance) {
+        if(rcvDis < validDistance && rcvDis > 0) {
             gpsPointSet.addGpsPoint(currentGpsPoint);
             //Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
             if (gpsPointSet.getNodeNumber() > 2) {
@@ -603,6 +608,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     handler.sendMessage(tempMsg);
                 }
 
+                if(rcvDis < minArrayDis){
+                    minArrayDis = rcvDis;
+                    validDistance = minArrayDis;
+                }
                 //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
                 if(isReverse){
                     delayCount ++;
