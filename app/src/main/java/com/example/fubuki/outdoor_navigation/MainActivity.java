@@ -135,6 +135,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final int TURN_REVERSE = 9;
     private static final int NO_POINT = 10;
     private static final int TOO_FAR = 11;
+    private static final int SHOW_POINT = 12;
 
     private double rcvDis; //从终端接收回来的距离
 
@@ -171,6 +172,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static int delayCount = 0;
 
     private static double validDistance = 30;
+
+    private boolean isFinal = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -367,8 +370,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }else{
                         bitmap = BitmapDescriptorFactory
                                 .fromResource(R.drawable.icon_en);
+                        isFinal = true;
                     }
 
+                    if(!isFinal){
+                        Message tempMsg = new Message();
+                        tempMsg.what = SHOW_POINT;
+                        handler.sendMessage(tempMsg);
+                    }
                     OverlayOptions option = new MarkerOptions()
                             .position(point)
                             .icon(bitmap);
@@ -584,15 +593,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if(rcvDis > 0)
                     distanceArray.add(rcvDis);
 
+                //盲走序列采样
+                blindSearchGpsPointSet.addGpsPoint(new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber()));
+
                 //当接收到的蓝牙距离过大时，提示用户回到一个起始点
                 if(rcvDis > 70){
                     Message tempMsg = new Message();
                     tempMsg.what = TOO_FAR;
                     handler.sendMessage(tempMsg);
                 }
-
-                //盲走序列采样
-                blindSearchGpsPointSet.addGpsPoint(new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber()));
 
                 //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
                 if(isReverse){
@@ -632,9 +641,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     prevSampleLatitude = currentLatitude;
                     prevSampleLongitude = currentLongitude;
-                    Message tempMsg2 = new Message();
+                    /*Message tempMsg2 = new Message();
                     tempMsg2.what = MOVE_FORWARD;
-                    handler.sendMessage(tempMsg2);
+                    handler.sendMessage(tempMsg2);*/
                 }
 
                 return;
@@ -706,7 +715,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 List<Integer> colors = new ArrayList<>();
 
                 //画出计算用的GPS序列的轨迹
-                for(int m = 0;m<gpsPointSet.getNodeNumber();m++){
+                /*for(int m = 0;m<gpsPointSet.getNodeNumber();m++){
                     LatLng temp = new LatLng(gpsPointSet.getGpsPoint(m).getLatitude(), gpsPointSet.getGpsPoint(m).getLongitude());
                     gpsTrace.add(temp);
 
@@ -722,7 +731,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
                 OverlayOptions gpsPolyline = new PolylineOptions().width(10)
                         .colorsValues(colors).points(gpsTrace);
-                mPolyline = (Polyline) mBaiduMap.addOverlay(gpsPolyline);
+                mPolyline = (Polyline) mBaiduMap.addOverlay(gpsPolyline);*/
 
             }
 
@@ -733,6 +742,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 MapStatus.Builder builder = new MapStatus.Builder();
                 builder.target(ll).zoom(20.0f);
                 mBaiduMap.animateMapStatus(MapStatusUpdateFactory.newMapStatus(builder.build()));
+
+                Message tempMsg2 = new Message();
+                tempMsg2.what = MOVE_FORWARD;
+                handler.sendMessage(tempMsg2);
             }
         }
 
@@ -783,15 +796,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 case NEW_DISTANCE:
                     TextView distanceText = findViewById(R.id.distance);
                     if(rcvDis > 70.0){
-                        distanceText.setText("信号强度：无信号"+rcvDis);
+                        distanceText.setText("信号强度：无信号");
                     }else if(rcvDis > 50.0){
-                        distanceText.setText("信号强度：弱"+rcvDis);
+                        distanceText.setText("信号强度：弱");
                     }else if(rcvDis > 30.0){
-                        distanceText.setText("信号强度：中"+rcvDis);
+                        distanceText.setText("信号强度：中");
                     }else{
-                        distanceText.setText("信号强度：强"+rcvDis);
+                        distanceText.setText("信号强度：强");
                     }
-
+                    if(rcvDis < 10.0){
+                        Toast.makeText(MainActivity.this,"到达节点附近，请四处张望，寻找节点",Toast.LENGTH_LONG).show();
+                    }
                     break;
                 case MOVE_FORWARD:
                     Toast.makeText(MainActivity.this,"请四处走动，寻找信号强度强的地方",Toast.LENGTH_LONG).show();
@@ -808,6 +823,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 case NO_POINT:
                     Toast.makeText(MainActivity.this,"暂时算不出节点，请左拐或右拐",Toast.LENGTH_SHORT).show();
                     break;
+                case SHOW_POINT:
+                    TextView pointNumberText = findViewById(R.id.samplePoint);
+                    pointNumberText.setText("采样点的个数:"+gpsPointSet.getNodeNumber());
+                    break;
                 case TOO_FAR:
                     GpsPoint minBlindPoint = searchMinPoint(blindSearchGpsPointSet);
                     LatLng minPoint = new LatLng(minBlindPoint.getLatitude(),minBlindPoint.getLongitude());
@@ -816,7 +835,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         gpsPointSet.addGpsPoint(minBlindPoint);
                     }
 
-                    if(minBlindPoint.getDistance() > 70){
+                    if(minBlindPoint.getDistance() > 70.0){
                         Toast.makeText(MainActivity.this,"请在地图上寻找有信号的位置再重新寻找",Toast.LENGTH_SHORT).show();
                     }else{
                         mBaiduMap.clear();
