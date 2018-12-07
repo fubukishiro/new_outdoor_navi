@@ -33,7 +33,7 @@
                 android:layout_weight="1"
                 android:layout_marginLeft="150px"
                 android:gravity="center"
-                android:text="信号强度：无连接" />
+                android:text="Signal Strength: Strong" />
 
             <Button
                 android:id="@+id/searchBtn"
@@ -42,30 +42,12 @@
                 android:layout_gravity="center"
                 android:layout_marginTop="20px"
                 android:layout_marginBottom="20px"
-                android:background="@drawable/bluetooth_red"
+                android:background="@drawable/bluetooth"
                 android:text=""
                 android:textColor="#ffffff" />
 
 
         </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="right"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/samplePoint"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginLeft="150px"
-                    android:gravity="center"
-                    android:text="采样点个数：" />
-
-
-            </LinearLayout>
 
 
 

@@ -833,8 +833,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     Toast.makeText(MainActivity.this,"暂时算不出节点，请左拐或右拐",Toast.LENGTH_SHORT).show();
                     break;
                 case SHOW_POINT:
-                    TextView pointNumberText = findViewById(R.id.samplePoint);
-                    pointNumberText.setText("采样点的个数:"+gpsPointSet.getNodeNumber());
+                    //TextView pointNumberText = findViewById(R.id.samplePoint);
+                    //pointNumberText.setText("采样点的个数:"+gpsPointSet.getNodeNumber());
                     break;
                 case TOO_FAR:
                     GpsPoint minBlindPoint = searchMinPoint(blindSearchGpsPointSet);
