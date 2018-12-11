@@ -33,7 +33,7 @@
                 android:layout_weight="1"
                 android:layout_marginLeft="150px"
                 android:gravity="center"
-                android:text="Signal Strength: Strong" />
+                android:text="Signal Strength: None" />
 
             <Button
                 android:id="@+id/searchBtn"
@@ -42,14 +42,31 @@
                 android:layout_gravity="center"
                 android:layout_marginTop="20px"
                 android:layout_marginBottom="20px"
-                android:background="@drawable/bluetooth"
+                android:background="@drawable/bluetooth_red"
                 android:text=""
                 android:textColor="#ffffff" />
 
 
         </LinearLayout>
 
-
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center">
+            <EditText
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/input_column"
+                android:textSize="60px"
+                android:id="@+id/validDis"/>
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/cancelbutton"
+                android:text="设定有效距离"
+                android:textColor="#ffffff"
+                android:id="@+id/setValidDistance"/>
+        </LinearLayout>
 
     </LinearLayout>
 

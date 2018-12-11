@@ -172,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static boolean isReverse = false;
     private static int delayCount = 0;
 
-    private static double validDistance;
+    private static double validDistance = 40.0;
 
     private boolean isFinal = false;
 
@@ -279,6 +279,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         minArrayDis = Double.MAX_VALUE;
 
+        //设定安全距离的按钮
+        Button setDistanceBtn = findViewById(R.id.setValidDistance);
+        setDistanceBtn.setOnClickListener(this);
     }
 
     //传感器监听初始化
@@ -482,6 +485,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     bluetoothGatt = null;
                 }
                 break;
+            case R.id.setValidDistance:
+                EditText msg = findViewById(R.id.validDis);
+                String tmpStr = msg.getText().toString();
+                validDistance = convertToDouble(tmpStr,0);
+                break;
             default:
                 break;
         }
@@ -610,7 +618,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 if(rcvDis < minArrayDis){
                     minArrayDis = rcvDis;
-                    validDistance = minArrayDis;
+                    //validDistance = minArrayDis;
                 }
                 //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
                 if(isReverse){
@@ -804,7 +812,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     break;
                 case NEW_DISTANCE:
                     TextView distanceText = findViewById(R.id.distance);
-                    if(rcvDis > 70.0){
+                    /*if(rcvDis > 70.0){
                         distanceText.setText("信号强度：无信号");
                     }else if(rcvDis > 50.0){
                         distanceText.setText("信号强度：弱");
@@ -812,7 +820,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         distanceText.setText("信号强度：中");
                     }else{
                         distanceText.setText("信号强度：强");
-                    }
+                    }*/
+                    distanceText.setText("接收距离:"+rcvDis);
                     if(rcvDis < 10.0){
                         Toast.makeText(MainActivity.this,"到达节点附近，请四处张望，寻找节点",Toast.LENGTH_LONG).show();
                     }
