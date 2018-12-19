@@ -94,6 +94,7 @@ public class GpsNode {
         //一般迭代满50次时结果都不佳，舍去这个计算点
         if(t==50){
             Log.e("leastSquare","迭代满50次,无效");
+            Log.e("leastSquare","满50次时的obj值:"+obj(x,y,tmpGPSPointArr));
             return new Point(NaN,NaN);
         }
         return new Point(x,y);
@@ -231,6 +232,7 @@ public class GpsNode {
         }else{
             //gps点增多后，重新找到最可靠的三个点
             reliablePoint = mIterationMethod.newReliablePoint(reliablePoint,gpsPointArray);
+            Log.e("leastSquare","最可靠三点的距离"+reliablePoint.get(0).getDistance()+"-"+reliablePoint.get(1).getDistance()+"-"+reliablePoint.get(2).getDistance());
             Log.e("leastSquare","最可靠三点的count值"+reliablePoint.get(0).getCount()+"-"+reliablePoint.get(1).getCount()+"-"+reliablePoint.get(2).getCount());
             Point loraNode = newtonIteration(reliablePoint);
             if(loraNode.getX()==NaN&&loraNode.getY()==NaN){
