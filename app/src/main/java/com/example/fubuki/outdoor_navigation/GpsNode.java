@@ -80,8 +80,10 @@ public class GpsNode {
         //限制最多迭代50次
         int t;
         for(t=0;t<50;t++){
-            x=x-obj(x,y,tmpGPSPointArr)/dfx1(x,y,tmpGPSPointArr);
-            y=y-obj(x,y,tmpGPSPointArr)/dfy1(x,y,tmpGPSPointArr);
+            /*x=x-obj(x,y,tmpGPSPointArr)/dfx1(x,y,tmpGPSPointArr);
+            y=y-obj(x,y,tmpGPSPointArr)/dfy1(x,y,tmpGPSPointArr);*/
+            x=x-dfx1(x,y,tmpGPSPointArr)/dfx2(x,y,tmpGPSPointArr);
+            y=y-dfy1(x,y,tmpGPSPointArr)/dfy2(x,y,tmpGPSPointArr);
             //满足误差精度时结束循环
             if(obj(x,y,tmpGPSPointArr)<0.3){
                 //Log.e("leastSquare","当前组合的迭代次数:"+(t+1));
@@ -137,6 +139,50 @@ public class GpsNode {
         double d3 = GPSPointArr.get(2).getDistance();
         double dfy1 = - (t2*(2*y - 2*y1)*(d1 - Math.sqrt(t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2))))/(2*Math.sqrt(t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2))) - (t2*(2*y - 2*y2)*(d2 - Math.sqrt(t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2))))/(2*Math.sqrt(t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2))) - (t2*(2*y - 2*y3)*(d3 - Math.sqrt(t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2))))/(2*Math.sqrt(t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2)));
         return dfy1;
+    }
+    //目标函数对x的二阶偏导
+    public static double dfx2(double x, double y, ArrayList<GpsPoint> GPSPointArr){
+        double x1 = GPSPointArr.get(0).getLongitude();
+        double y1 = GPSPointArr.get(0).getLatitude();
+        double d1 = GPSPointArr.get(0).getDistance();
+        double x2 = GPSPointArr.get(1).getLongitude();
+        double y2 = GPSPointArr.get(1).getLatitude();
+        double d2 = GPSPointArr.get(1).getDistance();
+        double x3 = GPSPointArr.get(2).getLongitude();
+        double y3 = GPSPointArr.get(2).getLatitude();
+        double d3 = GPSPointArr.get(2).getDistance();
+        double dfx2 = (Math.pow(t1,2)*Math.pow((2*x - 2*x1),2))/(4*(t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2)))
+                     +(Math.pow(t1,2)*Math.pow((2*x - 2*x2),2))/(4*(t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2)))
+                     +(Math.pow(t1,2)*Math.pow((2*x - 2*x3),2))/(4*(t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2)))
+                     -(t1*(d1 - Math.sqrt(t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2))))/Math.sqrt(t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2))
+                     -(t1*(d2 - Math.sqrt(t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2))))/Math.sqrt(t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2))
+                     -(t1*(d3 - Math.sqrt(t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2))))/Math.sqrt(t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2))
+                     +(Math.pow(t1,2)*Math.pow((2*x - 2*x1),2)*(d1 - Math.sqrt(t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2))))/(4*Math.sqrt(Math.pow((t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2)),3)))
+                     +(Math.pow(t1,2)*Math.pow((2*x - 2*x2),2)*(d2 - Math.sqrt(t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2))))/(4*Math.sqrt(Math.pow((t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2)),3)))
+                     +(Math.pow(t1,2)*Math.pow((2*x - 2*x3),2)*(d3 - Math.sqrt(t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2))))/(4*Math.sqrt(Math.pow((t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2)),3)));
+        return dfx2;
+    }
+    //目标函数对y的二阶偏导
+    public static double dfy2(double x, double y, ArrayList<GpsPoint> GPSPointArr){
+        double x1 = GPSPointArr.get(0).getLongitude();
+        double y1 = GPSPointArr.get(0).getLatitude();
+        double d1 = GPSPointArr.get(0).getDistance();
+        double x2 = GPSPointArr.get(1).getLongitude();
+        double y2 = GPSPointArr.get(1).getLatitude();
+        double d2 = GPSPointArr.get(1).getDistance();
+        double x3 = GPSPointArr.get(2).getLongitude();
+        double y3 = GPSPointArr.get(2).getLatitude();
+        double d3 = GPSPointArr.get(2).getDistance();
+        double dfy2 = (Math.pow(t2,2)*Math.pow((2*y - 2*y1),2))/(4*(t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2)))
+                     +(Math.pow(t2,2)*Math.pow((2*y - 2*y2),2))/(4*(t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2)))
+                     +(Math.pow(t2,2)*Math.pow((2*y - 2*y3),2))/(4*(t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2)))
+                -(t2*(d1 - Math.sqrt(t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2))))/Math.sqrt(t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2))
+                -(t2*(d2 - Math.sqrt(t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2))))/Math.sqrt(t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2))
+                -(t2*(d3 - Math.sqrt(t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2))))/Math.sqrt(t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2))
+                +(Math.pow(t2,2)*Math.pow((2*y - 2*y1),2)*(d1 - Math.sqrt(t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2))))/(4*Math.sqrt(Math.pow((t1*Math.pow((x - x1),2) + t2*Math.pow((y - y1),2)),3)))
+                +(Math.pow(t2,2)*Math.pow((2*y - 2*y2),2)*(d2 - Math.sqrt(t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2))))/(4*Math.sqrt(Math.pow((t1*Math.pow((x - x2),2) + t2*Math.pow((y - y2),2)),3)))
+                +(Math.pow(t2,2)*Math.pow((2*y - 2*y3),2)*(d3 - Math.sqrt(t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2))))/(4*Math.sqrt(Math.pow((t1*Math.pow((x - x3),2) + t2*Math.pow((y - y3),2)),3)));
+        return dfy2;
     }
 
 

@@ -24,9 +24,11 @@ public class IterationMethod {
                     totalDiff = totalDiff+Math.abs(DistanceUtil.getDistance(p1,p2)-this.tmpGPSPointArr.get(t).getDistance());
                 }
                 if(totalDiff>thre){
-                    //超过阈值时打坏点标记
+                    double totalDis = this.tmpGPSPointArr.get(0).getDistance()+this.tmpGPSPointArr.get(1).getDistance()+this.tmpGPSPointArr.get(2).getDistance();
+                    //超过阈值时打坏点标记,考虑距离越大时本身误差就会越大
                     for(int t=0;t<3;t++){
-                        this.tmpGPSPointArr.get(t).addCount();
+                        double count = this.tmpGPSPointArr.get(t).getDistance()/totalDis;
+                        this.tmpGPSPointArr.get(t).addCount(count);
                         }
                 }
                 this.tmpGPSPointArr.remove((Object)gpsPointArray.get(j));

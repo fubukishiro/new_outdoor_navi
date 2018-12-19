@@ -40,7 +40,7 @@ public class GpsPoint {
     public double getDistance(){return distance;}
     public void setDistance(double setDis){ this.distance = setDis; }
 
-    public void addCount(){this.count++;}
+    public void addCount(double count){this.count = this.count+count;}
     public double getCount(){return count;}
 
     public int getIndex(){ return this.number;}
