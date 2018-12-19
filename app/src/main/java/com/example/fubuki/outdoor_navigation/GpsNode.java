@@ -85,7 +85,14 @@ public class GpsNode {
         double y = lsGetNodePoint(tmpGPSPointArr).getY();
         //限制最多迭代50次
         int t;
-        for(t=0;t<50;t++){
+        int max_iter;
+        if(tmpGPSPointArr.get(0).getDistance()>45&&tmpGPSPointArr.get(1).getDistance()>45&&tmpGPSPointArr.get(2).getDistance()>45){
+            max_iter=100;
+        }
+        else{
+            max_iter=50;
+        }
+        for(t=0;t<max_iter;t++){
             /*x=x-obj(x,y,tmpGPSPointArr)/dfx1(x,y,tmpGPSPointArr);
             y=y-obj(x,y,tmpGPSPointArr)/dfy1(x,y,tmpGPSPointArr);*/
             x=x-dfx1(x,y,tmpGPSPointArr)/dfx2(x,y,tmpGPSPointArr);
@@ -99,10 +106,10 @@ public class GpsNode {
             }
         }
         //一般迭代满50次时结果都不佳，舍去这个计算点
-        if(t==50){
-            Log.e("leastSquare","迭代满50次,无效");
-            Log.e("leastSquare","满50次时的obj值:"+obj(x,y,tmpGPSPointArr));
-            mFileLogger.writeTxtToFile("迭代次数"+50+"#"+"obj"+obj(x,y,tmpGPSPointArr),mFileLogger.getFilePath(),mFileLogger.getFileName());
+        if(t==max_iter){
+            Log.e("leastSquare","迭代次数达到上限");
+            Log.e("leastSquare","迭代到上限时的obj值:"+obj(x,y,tmpGPSPointArr));
+            mFileLogger.writeTxtToFile("迭代次数"+max_iter+"#"+"obj"+obj(x,y,tmpGPSPointArr),mFileLogger.getFilePath(),mFileLogger.getFileName());
             if(obj(x,y,tmpGPSPointArr)<5){
                 return new Point(x,y);
             }
@@ -244,9 +251,9 @@ public class GpsNode {
             if(loraNode.getX()==NaN&&loraNode.getY()==NaN){
                 return new Point(NaN,NaN);
             }
-            //returnNode.addPoint(loraNode);//显示在屏幕上
-            //return loraNode;
-            return new Point(NaN,NaN);
+            returnNode.addPoint(loraNode);//显示在屏幕上
+            return loraNode;
+            //return new Point(NaN,NaN);
         }else{
             //gps点增多后，重新找到最可靠的三个点
             reliablePoint = mIterationMethod.newReliablePoint(reliablePoint,gpsPointArray);
