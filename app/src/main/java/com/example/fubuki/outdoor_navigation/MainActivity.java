@@ -67,6 +67,7 @@ import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult;
 import com.baidu.mapapi.utils.DistanceUtil;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -137,8 +138,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final int NO_POINT = 10;
     private static final int TOO_FAR = 11;
     private static final int SHOW_POINT = 12;
+    private static final int NEW_RSSI = 13;
 
     private double rcvDis; //从终端接收回来的距离
+    private double rssi; //从终端接收回来的rssi
 
     private int positionNumber;
 
@@ -177,6 +180,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private boolean isFinal = false;
 
     private double minArrayDis;
+
+    private List<Rssi> rssiArray = new ArrayList<Rssi>();//存放接收的距离序列
+
+    private FileLogger mFileLogger = new FileLogger(); //用于数据存储
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -282,6 +290,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         //设定安全距离的按钮
         Button setDistanceBtn = findViewById(R.id.setValidDistance);
         setDistanceBtn.setOnClickListener(this);
+
+        mFileLogger.initData();
     }
 
     //传感器监听初始化
@@ -590,80 +600,101 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 byte[] bytesReceive = characteristic.getValue();
                 String msgStr = new String(bytesReceive);
 
-                //匹配接收的数据格式
-                Pattern pattern = Pattern.compile("[(?<=addr|dis) (?=end)]+");
-                String[] strs = pattern.split(msgStr);
-
-                rcvDis = convertToDouble(strs[1],0);
-                Log.e(TAG,"蓝牙接收到的距离："+rcvDis);
-
-                //距离序列大于100时清空
-                if(distanceArray.size() > 100){
-                    distanceArray.clear();
+                Log.e(TAG,"接收到包："+msgStr);
+                //拆分数据格式
+                String[] strs = msgStr.split("#");
+                //Log.e(TAG,"接收到包："+strs[0]);
+                boolean isDis = false;
+                switch(strs[0]){
+                    case "dis":
+                        rcvDis = convertToDouble(strs[1],0);
+                        //Log.e(TAG,"接收到距离："+rcvDis);
+                        isDis = true;
+                        break;
+                    case "rssi":
+                        rssi = (int)convertToDouble(strs[1],0);
+                        rssiArray.add(new Rssi(rssi,new Date()));
+                        mFileLogger.writeTxtToFile(currentLatitude+"#"+currentLongitude+"#"+rssi,mFileLogger.getFilePath(),mFileLogger.getFileName());
+                        //Log.e(TAG,"接收到rssi："+ rssi);
+                        break;
+                    default:
+                        System.out.println("unknown");
+                        break;
                 }
 
+                if(isDis){
+                    //距离序列大于100时清空
+                    if(distanceArray.size() > 100){
+                        distanceArray.clear();
+                    }
 
-                if(rcvDis > 0)
-                    distanceArray.add(rcvDis);
 
-                //盲走序列采样
-                blindSearchGpsPointSet.addGpsPoint(new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber()));
+                    if(rcvDis > 0)
+                        distanceArray.add(rcvDis);
 
-                //当接收到的蓝牙距离过大时，提示用户回到一个起始点
-                if(rcvDis > 70){
+                    //盲走序列采样
+                    blindSearchGpsPointSet.addGpsPoint(new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber()));
+
+                    //当接收到的蓝牙距离过大时，提示用户回到一个起始点
+                    if(rcvDis > 70){
+                        Message tempMsg = new Message();
+                        tempMsg.what = TOO_FAR;
+                        handler.sendMessage(tempMsg);
+                    }
+
+                    if(rcvDis < minArrayDis){
+                        minArrayDis = rcvDis;
+                        //validDistance = minArrayDis;
+                    }
+                    //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
+                    if(isReverse){
+                        delayCount ++;
+                        if(delayCount > 6) {
+                            isReverse = false;
+                            delayCount = 0;
+                        }
+                    }else if(distanceArray.size()>5){
+                        if(MyUtil.judgeTrend(distanceArray)){
+                            Message tempMsg = new Message();
+                            tempMsg.what = TURN_REVERSE;
+                            handler.sendMessage(tempMsg);
+                            isReverse = true;
+                        }
+                    }
+
                     Message tempMsg = new Message();
-                    tempMsg.what = TOO_FAR;
+                    tempMsg.what = NEW_DISTANCE;
+                    handler.sendMessage(tempMsg);
+                    toggleFlag = !toggleFlag;
+
+                    if(token.getFlag()) {
+                        synchronized (token) {
+                            token.setFlag(false);
+                            token.notifyAll();
+                            Log.e(TAG,"线程重新启动");
+                        }
+                    }
+
+                    if(isFirstDistance){
+                        getLocation();
+                        isFirstDistance = false;
+
+                        firstLatitude = currentLatitude;
+                        firstLongitude = currentLongitude;
+
+                        prevSampleLatitude = currentLatitude;
+                        prevSampleLongitude = currentLongitude;
+                    }
+
+                }else{
+                    Message tempMsg = new Message();
+                    tempMsg.what = NEW_RSSI;
                     handler.sendMessage(tempMsg);
                 }
 
-                if(rcvDis < minArrayDis){
-                    minArrayDis = rcvDis;
-                    //validDistance = minArrayDis;
-                }
-                //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
-                if(isReverse){
-                    delayCount ++;
-                    if(delayCount > 6) {
-                        isReverse = false;
-                        delayCount = 0;
-                    }
-                }else if(distanceArray.size()>5){
-                    if(MyUtil.judgeTrend(distanceArray)){
-                        Message tempMsg = new Message();
-                        tempMsg.what = TURN_REVERSE;
-                        handler.sendMessage(tempMsg);
-                        isReverse = true;
-                    }
-                }
-
-                Message tempMsg = new Message();
-                tempMsg.what = NEW_DISTANCE;
-                handler.sendMessage(tempMsg);
-                toggleFlag = !toggleFlag;
-
-                if(token.getFlag()) {
-                    synchronized (token) {
-                        token.setFlag(false);
-                        token.notifyAll();
-                        Log.e(TAG,"线程重新启动");
-                    }
-                }
-
-                if(isFirstDistance){
-                    getLocation();
-                    isFirstDistance = false;
-
-                    firstLatitude = currentLatitude;
-                    firstLongitude = currentLongitude;
-
-                    prevSampleLatitude = currentLatitude;
-                    prevSampleLongitude = currentLongitude;
-                    /*Message tempMsg2 = new Message();
-                    tempMsg2.what = MOVE_FORWARD;
-                    handler.sendMessage(tempMsg2);*/
-                }
-
+                isDis = false;
                 return;
+
             }
         });
     }
@@ -873,6 +904,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         mBaiduMap.addOverlay(option);
                         Toast.makeText(MainActivity.this,"请回到提示点，换一个方向走",Toast.LENGTH_SHORT).show();
                     }
+                    break;
+                case NEW_RSSI:
+                    TextView rssiText = findViewById(R.id.rssi);
+                    rssiText.setText("接收到的rssi:"+rssi);
                     break;
                 default:
                     break;
