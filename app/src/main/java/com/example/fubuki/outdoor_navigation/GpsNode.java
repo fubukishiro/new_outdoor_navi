@@ -86,13 +86,14 @@ public class GpsNode {
             y=y-dfy1(x,y,tmpGPSPointArr)/dfy2(x,y,tmpGPSPointArr);
             //满足误差精度时结束循环
             if(obj(x,y,tmpGPSPointArr)<0.3){
-                //Log.e("leastSquare","当前组合的迭代次数:"+(t+1));
+                Log.e("leastSquare","当前组合的迭代次数:"+(t+1));
+                Log.e("leastSquare","迭代结果的obj值:"+obj(x,y,tmpGPSPointArr));
                 break;
             }
         }
         //一般迭代满50次时结果都不佳，舍去这个计算点
         if(t==50){
-            //Log.e("leastSquare","迭代满50次,无效");
+            Log.e("leastSquare","迭代满50次,无效");
             return new Point(NaN,NaN);
         }
         return new Point(x,y);
@@ -230,6 +231,7 @@ public class GpsNode {
         }else{
             //gps点增多后，重新找到最可靠的三个点
             reliablePoint = mIterationMethod.newReliablePoint(reliablePoint,gpsPointArray);
+            Log.e("leastSquare","最可靠三点的count值"+reliablePoint.get(0).getCount()+"-"+reliablePoint.get(1).getCount()+"-"+reliablePoint.get(2).getCount());
             Point loraNode = newtonIteration(reliablePoint);
             if(loraNode.getX()==NaN&&loraNode.getY()==NaN){
                 return new Point(NaN,NaN);
