@@ -13,12 +13,12 @@ public class FileLogger {
 
     private String filePath;
     private String fileName;
-    public void initData() {
+    public void initData(String mFileName) {
         SimpleDateFormat formatter = new SimpleDateFormat   ("yyyy-MM-dd-HH:mm:ss");
         Date curDate =  new Date(System.currentTimeMillis());
 
         filePath = Environment.getExternalStorageDirectory()+"/Test/";
-        fileName = "iLocLog_"+formatter.format(curDate)+".txt";
+        fileName = mFileName+formatter.format(curDate)+".txt";
 
         writeTxtToFile(formatter.format(curDate), filePath, fileName);
         //writeTxtToFile("txt content2", filePath, fileName);

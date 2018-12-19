@@ -43,7 +43,13 @@ public class GpsNode {
         return gpsPointArray.size();
     }
 
-
+    private static FileLogger mFileLogger;
+    public GpsNode(boolean isLog){
+        if(isLog) {
+            mFileLogger = new FileLogger();
+            mFileLogger.initData("iLocIteration");
+        }
+    }
     //基于三点，采用最小二乘法求解迭代初始点
     public static Point lsGetNodePoint(ArrayList<GpsPoint> tmpGPSPointArr){
         int rowNumber=tmpGPSPointArr.size()-1;
@@ -85,9 +91,10 @@ public class GpsNode {
             x=x-dfx1(x,y,tmpGPSPointArr)/dfx2(x,y,tmpGPSPointArr);
             y=y-dfy1(x,y,tmpGPSPointArr)/dfy2(x,y,tmpGPSPointArr);
             //满足误差精度时结束循环
-            if(obj(x,y,tmpGPSPointArr)<0.3){
+            if(obj(x,y,tmpGPSPointArr)<0.6){
                 Log.e("leastSquare","当前组合的迭代次数:"+(t+1));
                 Log.e("leastSquare","迭代结果的obj值:"+obj(x,y,tmpGPSPointArr));
+                mFileLogger.writeTxtToFile("迭代次数"+(t+1)+"#"+"obj"+obj(x,y,tmpGPSPointArr),mFileLogger.getFilePath(),mFileLogger.getFileName());
                 break;
             }
         }
@@ -95,7 +102,14 @@ public class GpsNode {
         if(t==50){
             Log.e("leastSquare","迭代满50次,无效");
             Log.e("leastSquare","满50次时的obj值:"+obj(x,y,tmpGPSPointArr));
-            return new Point(NaN,NaN);
+            mFileLogger.writeTxtToFile("迭代次数"+50+"#"+"obj"+obj(x,y,tmpGPSPointArr),mFileLogger.getFilePath(),mFileLogger.getFileName());
+            if(obj(x,y,tmpGPSPointArr)<5){
+                return new Point(x,y);
+            }
+            else{
+                return new Point(NaN,NaN);
+            }
+
         }
         return new Point(x,y);
 
@@ -223,17 +237,23 @@ public class GpsNode {
             reliablePoint.add(reliableGPSPoint1);
             reliablePoint.add(reliableGPSPoint2);
             reliablePoint.add(reliableGPSPoint3);
+            Log.e("leastSquare","初始三个点"+reliableGPSPoint1.getLatitude()+"-"+reliableGPSPoint1.getLongitude());
+            Log.e("leastSquare","初始三个点"+reliableGPSPoint2.getLatitude()+"-"+reliableGPSPoint2.getLongitude());
+            Log.e("leastSquare","初始三个点"+reliableGPSPoint3.getLatitude()+"-"+reliableGPSPoint3.getLongitude());
             Point loraNode = newtonIteration(reliablePoint);//牛顿迭代法
             if(loraNode.getX()==NaN&&loraNode.getY()==NaN){
                 return new Point(NaN,NaN);
             }
-            returnNode.addPoint(loraNode);//显示在屏幕上
-            return loraNode;
+            //returnNode.addPoint(loraNode);//显示在屏幕上
+            //return loraNode;
+            return new Point(NaN,NaN);
         }else{
             //gps点增多后，重新找到最可靠的三个点
             reliablePoint = mIterationMethod.newReliablePoint(reliablePoint,gpsPointArray);
             Log.e("leastSquare","最可靠三点的距离"+reliablePoint.get(0).getDistance()+"-"+reliablePoint.get(1).getDistance()+"-"+reliablePoint.get(2).getDistance());
             Log.e("leastSquare","最可靠三点的count值"+reliablePoint.get(0).getCount()+"-"+reliablePoint.get(1).getCount()+"-"+reliablePoint.get(2).getCount());
+            mFileLogger.writeTxtToFile("可靠count"+reliablePoint.get(0).getCount()+"-"+reliablePoint.get(1).getCount()+"-"+reliablePoint.get(2).getCount()+"#"+"可靠距离"+reliablePoint.get(0).getDistance()+"-"+reliablePoint.get(1).getDistance()+"-"+reliablePoint.get(2).getDistance(),mFileLogger.getFilePath(),mFileLogger.getFileName());
+
             Point loraNode = newtonIteration(reliablePoint);
             if(loraNode.getX()==NaN&&loraNode.getY()==NaN){
                 return new Point(NaN,NaN);

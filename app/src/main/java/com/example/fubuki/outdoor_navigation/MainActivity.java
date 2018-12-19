@@ -175,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static boolean isReverse = false;
     private static int delayCount = 0;
 
-    private static double validDistance = 40.0;
+    private static double validDistance = Double.MAX_VALUE;
 
     private boolean isFinal = false;
 
@@ -185,6 +185,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private FileLogger mFileLogger = new FileLogger(); //用于数据存储
 
+
+    private boolean isStartRecord = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -240,8 +242,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         Button searchBLEBtn = findViewById(R.id.searchBtn);
         searchBLEBtn.setOnClickListener(this);
 
-        gpsPointSet = new GpsNode();   //计算用的gps点序列
-        blindSearchGpsPointSet = new GpsNode();  //盲走阶段的gps点序列
+        gpsPointSet = new GpsNode(true);   //计算用的gps点序列
+        blindSearchGpsPointSet = new GpsNode(false);  //盲走阶段的gps点序列
         positionNumber = 0;
 
         rcvDis = 0;
@@ -291,7 +293,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         Button setDistanceBtn = findViewById(R.id.setValidDistance);
         setDistanceBtn.setOnClickListener(this);
 
-        mFileLogger.initData();
+        //开始记录数据的按钮
+        Button startRecordBtn = findViewById(R.id.startRecord);
+        startRecordBtn.setOnClickListener(this);
+
+        //mFileLogger.initData();
     }
 
     //传感器监听初始化
@@ -353,7 +359,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Log.e(TAG,"线程重新恢复 in checkDistance");
 
             //当接收距离小于30米，才把当前GPS添加进去
-            if(rcvDis < validDistance && rcvDis > 0) {
+            if(rcvDis <= validDistance && rcvDis > 0) {
                 GpsPoint currentGpsPoint = new GpsPoint(currentLongitude, currentLatitude, orientationValues[0], rcvDis, gpsPointSet.getNodeNumber());
 
                 gpsPointSet.addGpsPoint(currentGpsPoint);
@@ -500,6 +506,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 String tmpStr = msg.getText().toString();
                 validDistance = convertToDouble(tmpStr,0);
                 break;
+            case R.id.startRecord:
+                isStartRecord = true;
+                mFileLogger.initData("iLocRSSi");
+                break;
             default:
                 break;
         }
@@ -608,14 +618,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 switch(strs[0]){
                     case "dis":
                         rcvDis = convertToDouble(strs[1],0);
-                        //Log.e(TAG,"接收到距离："+rcvDis);
+                        Log.e(TAG,"接收到距离："+rcvDis);
                         isDis = true;
                         break;
                     case "rssi":
                         rssi = (int)convertToDouble(strs[1],0);
                         rssiArray.add(new Rssi(rssi,new Date()));
-                        mFileLogger.writeTxtToFile(currentLatitude+"#"+currentLongitude+"#"+rssi,mFileLogger.getFilePath(),mFileLogger.getFileName());
-                        //Log.e(TAG,"接收到rssi："+ rssi);
+                        if(isStartRecord)
+                            mFileLogger.writeTxtToFile(new Date().getTime()+"#"+rssi,mFileLogger.getFilePath(),mFileLogger.getFileName());
+                        Log.e(TAG,"接收到rssi："+ rssi);
                         break;
                     default:
                         System.out.println("unknown");
@@ -644,7 +655,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     if(rcvDis < minArrayDis){
                         minArrayDis = rcvDis;
-                        //validDistance = minArrayDis;
+                        validDistance = minArrayDis;
+                        Log.e("least","当前动态阈值:"+validDistance);
                     }
                     //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
                     if(isReverse){
@@ -676,7 +688,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }
 
                     if(isFirstDistance){
-                        getLocation();
+                        //getLocation();
                         isFirstDistance = false;
 
                         firstLatitude = currentLatitude;
