@@ -107,7 +107,7 @@ public class GpsNode {
         }
         //一般迭代满50次时结果都不佳，舍去这个计算点
         if(t==max_iter){
-            Log.e("leastSquare","迭代次数达到上限");
+            Log.e("leastSquare","迭代次数达到上限"+max_iter);
             Log.e("leastSquare","迭代到上限时的obj值:"+obj(x,y,tmpGPSPointArr));
             mFileLogger.writeTxtToFile("迭代次数"+max_iter+"#"+"obj"+obj(x,y,tmpGPSPointArr),mFileLogger.getFilePath(),mFileLogger.getFileName());
             if(obj(x,y,tmpGPSPointArr)<5){

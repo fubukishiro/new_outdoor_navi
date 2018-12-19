@@ -139,6 +139,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final int TOO_FAR = 11;
     private static final int SHOW_POINT = 12;
     private static final int NEW_RSSI = 13;
+    private static final int TURN_REVERSE_RSSI = 14;
 
     private double rcvDis; //从终端接收回来的距离
     private double rssi; //从终端接收回来的rssi
@@ -187,6 +188,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
 
     private boolean isStartRecord = false;
+
+    private boolean is_hint_rssi = false; //是否根据rssi提示过
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -653,25 +656,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         handler.sendMessage(tempMsg);
                     }
 
-                    if(rcvDis < minArrayDis){
+                    if(rcvDis < minArrayDis && rcvDis>0){
                         minArrayDis = rcvDis;
                         validDistance = minArrayDis;
                         Log.e("least","当前动态阈值:"+validDistance);
-                    }
-                    //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
-                    if(isReverse){
-                        delayCount ++;
-                        if(delayCount > 6) {
-                            isReverse = false;
-                            delayCount = 0;
-                        }
-                    }else if(distanceArray.size()>5){
-                        if(MyUtil.judgeTrend(distanceArray)){
-                            Message tempMsg = new Message();
-                            tempMsg.what = TURN_REVERSE;
-                            handler.sendMessage(tempMsg);
-                            isReverse = true;
-                        }
                     }
 
                     Message tempMsg = new Message();
@@ -702,6 +690,39 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     Message tempMsg = new Message();
                     tempMsg.what = NEW_RSSI;
                     handler.sendMessage(tempMsg);
+                }
+
+                //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
+                if(rcvDis > 0){
+                    if(isReverse){
+                        delayCount ++;
+                        if(delayCount > 6) {
+                            isReverse = false;
+                            delayCount = 0;
+                        }
+                    }else if(distanceArray.size()>5){
+                        if(MyUtil.judgeTrend(distanceArray)){
+                            Message tempMsg = new Message();
+                            tempMsg.what = TURN_REVERSE;
+                            handler.sendMessage(tempMsg);
+                            isReverse = true;
+                        }
+                    }
+
+                    if(is_hint_rssi)
+                        is_hint_rssi = false;
+
+                }else if(rcvDis == 0 && rssi < 0){
+                    if(!is_hint_rssi){
+                        if(MyUtil.judgeTimeStamp(rssiArray)){
+                            Message tempMsg = new Message();
+                            tempMsg.what = TURN_REVERSE_RSSI;
+                            handler.sendMessage(tempMsg);
+                            isReverse = true;
+                            is_hint_rssi = true;
+                        }
+                    }
+
                 }
 
                 isDis = false;
@@ -920,6 +941,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 case NEW_RSSI:
                     TextView rssiText = findViewById(R.id.rssi);
                     rssiText.setText("接收到的rssi:"+rssi);
+                    break;
+                case TURN_REVERSE_RSSI:
+                    Toast.makeText(MainActivity.this,"请换一个方向寻找接收得到距离的地方",Toast.LENGTH_SHORT).show();
                     break;
                 default:
                     break;
