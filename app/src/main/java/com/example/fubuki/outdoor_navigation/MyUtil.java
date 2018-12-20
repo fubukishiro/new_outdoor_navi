@@ -38,29 +38,27 @@ public class MyUtil {
 
     public static boolean judgeTimeStamp(List<Rssi> rssiArray){
         int currentNum = rssiArray.size();
-        double ts1 = rssiArray.get(currentNum - 1).getDate().getTime();
-        double ts2 = rssiArray.get(currentNum - 2).getDate().getTime();
-        double ts3 = rssiArray.get(currentNum - 3).getDate().getTime();
-        double ts4 = rssiArray.get(currentNum - 4).getDate().getTime();
-        double ts5 = rssiArray.get(currentNum - 5).getDate().getTime();
-        double ts6 = rssiArray.get(currentNum - 6).getDate().getTime();
-        double ts7 = rssiArray.get(currentNum - 7).getDate().getTime();
-        //丢包率
-        int lostCount = 0;
-        if(ts1 - ts2 > 1500 && ts1 - ts2 < 2500)
-            lostCount++;
-        if(ts2 - ts3 > 1500 && ts2 - ts3 < 2500)
-            lostCount++;
-        if(ts3 - ts4 > 1500 && ts3 - ts4 < 2500)
-            lostCount++;
-        if(ts4 - ts5 > 1500 && ts4 - ts5 < 2500)
-            lostCount++;
-        if(ts5 - ts6 > 1500 && ts5 - ts6 < 2500)
-            lostCount++;
-        if(ts6 - ts7 > 1500 && ts6 - ts7 < 2500)
-            lostCount++;
+        Rssi r1 = rssiArray.get(currentNum - 1);
+        Rssi r2 = rssiArray.get(currentNum - 2);
+        Rssi r3 = rssiArray.get(currentNum - 3);
+        Rssi r4 = rssiArray.get(currentNum - 4);
+        Rssi r5 = rssiArray.get(currentNum - 5);
+        Rssi r6 = rssiArray.get(currentNum - 6);
+        Rssi r7 = rssiArray.get(currentNum - 7);
 
-        if(lostCount > 3)
+        int lostCount = 0, descendCount = 0;
+        for(int i = currentNum - 1 ;i > currentNum - 7;i--){
+            Rssi temp1 = rssiArray.get(i);
+            Rssi temp2 = rssiArray.get(i-1);
+
+            if(temp1.getDate().getTime()  - temp2.getDate().getTime() > 1500 && temp1.getDate().getTime() - temp2.getDate().getTime() < 2500)
+                lostCount++;
+
+            if(temp1.getRssi() < 0 && temp2.getRssi() < 0 && temp1.getRssi() - temp2.getRssi() < 0)
+                descendCount++;
+        }
+
+        if(lostCount > 3 && descendCount > 3)
             return true;
         else
             return false;

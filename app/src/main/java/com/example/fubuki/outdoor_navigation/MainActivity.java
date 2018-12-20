@@ -714,12 +714,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 }else if(rcvDis == 0 && rssi < 0){
                     if(!is_hint_rssi){
-                        if(MyUtil.judgeTimeStamp(rssiArray)){
-                            Message tempMsg = new Message();
-                            tempMsg.what = TURN_REVERSE_RSSI;
-                            handler.sendMessage(tempMsg);
-                            isReverse = true;
-                            is_hint_rssi = true;
+                        if(rssiArray.size() > 8){
+                            if(MyUtil.judgeTimeStamp(rssiArray)){
+                                Message tempMsg = new Message();
+                                tempMsg.what = TURN_REVERSE_RSSI;
+                                handler.sendMessage(tempMsg);
+                                isReverse = true;
+                                is_hint_rssi = true;
+                            }
                         }
                     }
 
