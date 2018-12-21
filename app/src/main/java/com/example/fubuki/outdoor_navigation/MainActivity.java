@@ -745,24 +745,26 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     mFileLogger.writeTxtToFile("从收到距离到没收到距离的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
                     isAgainFindDis = false;
                 }
-
-                //nan方法判断
-                if(isRssiCountReverse){
-                    delayRssiCount++;
-                    if(delayRssiCount > 6) {
-                        isRssiCountReverse = false;
-                        delayRssiCount = 0;
-                    }
-                }else if(rssiArray.size() > 7){
-                    rssiLostCount.add(MyUtil.countRssiNanNumber(rssiArray,mFileLogger));
-                    if(MyUtil.judgeCountTrend(rssiLostCount,mFileLogger)){
-                        Message tempMsg = new Message();
-                        tempMsg.what = TURN_REVERSE_RSSI;
-                        handler.sendMessage(tempMsg);
-                        mFileLogger.writeTxtToFile("NaN的RSSI的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
-                        isRssiCountReverse = true;
+                if(rcvDis == 0){
+                    //nan方法判断
+                    if(isRssiCountReverse){
+                        delayRssiCount++;
+                        if(delayRssiCount > 6) {
+                            isRssiCountReverse = false;
+                            delayRssiCount = 0;
+                        }
+                    }else if(rssiArray.size() > 7){
+                        rssiLostCount.add(MyUtil.countRssiNanNumber(rssiArray,mFileLogger));
+                        if(MyUtil.judgeCountTrend(rssiLostCount,mFileLogger)){
+                            Message tempMsg = new Message();
+                            tempMsg.what = TURN_REVERSE_RSSI;
+                            handler.sendMessage(tempMsg);
+                            mFileLogger.writeTxtToFile("NaN的RSSI的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
+                            isRssiCountReverse = true;
+                        }
                     }
                 }
+
 
                 isDis = false;
                 return;
