@@ -650,9 +650,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         distanceArray.clear();
                     }
 
+                    distanceArray.add(rcvDis);
 
                     if(rcvDis > 0) {
-                        distanceArray.add(rcvDis);
                         //盲走序列采样
                         blindSearchGpsPointSet.addGpsPoint(new GpsPoint(currentLongitude, currentLatitude, orientationValues[0], rcvDis, gpsPointSet.getNodeNumber()));
                         isAgainFindDis = true;
