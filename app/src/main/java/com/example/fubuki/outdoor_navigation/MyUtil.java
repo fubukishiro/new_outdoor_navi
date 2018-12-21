@@ -44,7 +44,7 @@ public class MyUtil {
             int temp1 = rssiCountArray.get(i);
             int temp2 = rssiCountArray.get(i-1);
 
-            if(temp1 - temp2 >=0)
+            if((temp1 - temp2 >=0)&&(temp2!=0))
                 ascendCount++;
 
         }
