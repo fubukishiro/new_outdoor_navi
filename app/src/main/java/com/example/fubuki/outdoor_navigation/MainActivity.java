@@ -738,10 +738,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
 
                 //用于从收到距离移动到没收到距离的情况
-                if(MyUtil.countDisNanNumber(distanceArray) > 2 && isAgainFindDis){
+                if(MyUtil.countDisNanNumber(distanceArray,mFileLogger) > 2 && isAgainFindDis){
                     Message tempMsg = new Message();
                     tempMsg.what = TURN_REVERSE_NEW;
                     handler.sendMessage(tempMsg);
+                    mFileLogger.writeTxtToFile("从收到距离到没收到距离的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
                     isAgainFindDis = false;
                 }
 
@@ -753,15 +754,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         delayRssiCount = 0;
                     }
                 }else if(rssiArray.size() > 7){
-                    rssiLostCount.add(MyUtil.countRssiNanNumber(rssiArray));
-                    if(MyUtil.judgeCountTrend(rssiLostCount)){
+                    rssiLostCount.add(MyUtil.countRssiNanNumber(rssiArray,mFileLogger));
+                    if(MyUtil.judgeCountTrend(rssiLostCount,mFileLogger)){
                         Message tempMsg = new Message();
                         tempMsg.what = TURN_REVERSE_RSSI;
                         handler.sendMessage(tempMsg);
+                        mFileLogger.writeTxtToFile("NaN的RSSI的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
                         isRssiCountReverse = true;
                     }
                 }
-
 
                 isDis = false;
                 return;

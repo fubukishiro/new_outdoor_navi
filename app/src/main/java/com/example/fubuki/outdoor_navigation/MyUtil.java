@@ -36,7 +36,7 @@ public class MyUtil {
             return false;
     }
 
-    public static boolean judgeCountTrend(List<Integer> rssiCountArray){
+    public static boolean judgeCountTrend(List<Integer> rssiCountArray, FileLogger mFileLogger){
         int currentNum = rssiCountArray.size();
 
         int ascendCount = 0;
@@ -49,7 +49,8 @@ public class MyUtil {
 
         }
 
-        Log.e("judge","当前rssi lost count："+ ascendCount);
+        mFileLogger.writeTxtToFile("当前rssi trend count："+ ascendCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
+        Log.e("judge","当前rssi trend count："+ ascendCount);
 
         if(ascendCount > 3)
             return true;
@@ -80,7 +81,7 @@ public class MyUtil {
             return false;
     }
 
-    public static int countDisNanNumber(List<Double> rcvDisArray){
+    public static int countDisNanNumber(List<Double> rcvDisArray, FileLogger mFileLogger){
         int currentNum = rcvDisArray.size();
 
         int nanCount = 0;
@@ -91,11 +92,12 @@ public class MyUtil {
 
         }
 
+        mFileLogger.writeTxtToFile("当前Dis NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
         Log.e("judge","当前Dis NaN count："+ nanCount);
 
         return nanCount;
     }
-    public static int countRssiNanNumber(List<Rssi> rssiArray){
+    public static int countRssiNanNumber(List<Rssi> rssiArray,FileLogger mFileLogger){
         int currentNum = rssiArray.size();
 
         int nanCount = 0;
@@ -107,6 +109,7 @@ public class MyUtil {
 
         }
 
+        mFileLogger.writeTxtToFile("当前NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
         Log.e("judge","当前NaN count："+ nanCount);
 
         return nanCount;
