@@ -36,32 +36,80 @@ public class MyUtil {
             return false;
     }
 
+    public static boolean judgeCountTrend(List<Integer> rssiCountArray){
+        int currentNum = rssiCountArray.size();
+
+        int ascendCount = 0;
+        for(int i = currentNum - 1 ;i > currentNum - 7;i--){
+            int temp1 = rssiCountArray.get(i);
+            int temp2 = rssiCountArray.get(i-1);
+
+            if(temp1 - temp2 >0)
+                ascendCount++;
+
+        }
+
+        Log.e("judge","当前rssi lost count："+ ascendCount);
+
+        if(ascendCount > 3)
+            return true;
+        else
+            return false;
+    }
+
     public static boolean judgeTimeStamp(List<Rssi> rssiArray){
         int currentNum = rssiArray.size();
-        Rssi r1 = rssiArray.get(currentNum - 1);
-        Rssi r2 = rssiArray.get(currentNum - 2);
-        Rssi r3 = rssiArray.get(currentNum - 3);
-        Rssi r4 = rssiArray.get(currentNum - 4);
-        Rssi r5 = rssiArray.get(currentNum - 5);
-        Rssi r6 = rssiArray.get(currentNum - 6);
-        Rssi r7 = rssiArray.get(currentNum - 7);
 
         int lostCount = 0, descendCount = 0;
         for(int i = currentNum - 1 ;i > currentNum - 7;i--){
             Rssi temp1 = rssiArray.get(i);
             Rssi temp2 = rssiArray.get(i-1);
 
-            if(temp1.getDate().getTime()  - temp2.getDate().getTime() > 1500 && temp1.getDate().getTime() - temp2.getDate().getTime() < 2500)
+            if(temp1.getDate().getTime()  - temp2.getDate().getTime() > 2500)
                 lostCount++;
 
-            if(temp1.getRssi() < 0 && temp2.getRssi() < 0 && temp1.getRssi() - temp2.getRssi() < 0)
-                descendCount++;
+            /*if(temp1.getRssi() < 0 && temp2.getRssi() < 0 && temp1.getRssi() - temp2.getRssi() < 0)
+                descendCount++;*/
         }
 
-        if(lostCount > 3 && descendCount > 3)
+        Log.e("judge","当前count："+lostCount);
+
+        if(lostCount > 3)
             return true;
         else
             return false;
+    }
+
+    public static int countDisNanNumber(List<Double> rcvDisArray){
+        int currentNum = rcvDisArray.size();
+
+        int nanCount = 0;
+        for(int i = currentNum - 1 ;i > currentNum - 8;i--){
+           double temp = rcvDisArray.get(i);
+            if(temp == 0)
+                nanCount++;
+
+        }
+
+        Log.e("judge","当前Dis NaN count："+ nanCount);
+
+        return nanCount;
+    }
+    public static int countRssiNanNumber(List<Rssi> rssiArray){
+        int currentNum = rssiArray.size();
+
+        int nanCount = 0;
+        for(int i = currentNum - 1 ;i > currentNum - 8;i--){
+            Rssi temp = rssiArray.get(i);
+
+            if(temp.getRssi() == 0)
+                nanCount++;
+
+        }
+
+        Log.e("judge","当前NaN count："+ nanCount);
+
+        return nanCount;
     }
     //寻找盲走序列中距离最小的点
     public static GpsPoint searchMinPoint(GpsNode blindPointSet){

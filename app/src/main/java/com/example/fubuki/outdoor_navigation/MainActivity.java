@@ -140,6 +140,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final int SHOW_POINT = 12;
     private static final int NEW_RSSI = 13;
     private static final int TURN_REVERSE_RSSI = 14;
+    private static final int TURN_REVERSE_NEW = 15;
 
     private double rcvDis; //从终端接收回来的距离
     private double rssi; //从终端接收回来的rssi
@@ -175,6 +176,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private List<Double> distanceArray = new ArrayList<Double>();//存放接收的距离序列
     private static boolean isReverse = false;
     private static int delayCount = 0;
+    private static int delayRssiCount = 0;
 
     private static double validDistance = Double.MAX_VALUE;
 
@@ -190,6 +192,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private boolean isStartRecord = false;
 
     private boolean is_hint_rssi = false; //是否根据rssi提示过
+
+    private List<Integer> rssiLostCount = new ArrayList<Integer>();
+
+    private boolean isAgainFindDis = true; //是否重新找到距离不为0的判断
+
+    private boolean isRssiCountReverse = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -643,12 +651,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }
 
 
-                    if(rcvDis > 0)
+                    if(rcvDis > 0) {
                         distanceArray.add(rcvDis);
-
-                    //盲走序列采样
-                    blindSearchGpsPointSet.addGpsPoint(new GpsPoint(currentLongitude,currentLatitude,orientationValues[0],rcvDis, gpsPointSet.getNodeNumber()));
-
+                        //盲走序列采样
+                        blindSearchGpsPointSet.addGpsPoint(new GpsPoint(currentLongitude, currentLatitude, orientationValues[0], rcvDis, gpsPointSet.getNodeNumber()));
+                        isAgainFindDis = true;
+                    }
                     //当接收到的蓝牙距离过大时，提示用户回到一个起始点
                     if(rcvDis > 70){
                         Message tempMsg = new Message();
@@ -715,7 +723,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }else if(rcvDis == 0 && rssi < 0){
                     if(!is_hint_rssi){
                         if(rssiArray.size() > 8){
+                            Log.e(TAG,"进入rssi时间戳判断");
                             if(MyUtil.judgeTimeStamp(rssiArray)){
+                                Log.e(TAG,"rssi提示");
                                 Message tempMsg = new Message();
                                 tempMsg.what = TURN_REVERSE_RSSI;
                                 handler.sendMessage(tempMsg);
@@ -726,6 +736,32 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }
 
                 }
+
+                //用于从收到距离移动到没收到距离的情况
+                if(MyUtil.countDisNanNumber(distanceArray) > 2 && isAgainFindDis){
+                    Message tempMsg = new Message();
+                    tempMsg.what = TURN_REVERSE_NEW;
+                    handler.sendMessage(tempMsg);
+                    isAgainFindDis = false;
+                }
+
+                //nan方法判断
+                if(isRssiCountReverse){
+                    delayRssiCount++;
+                    if(delayRssiCount > 6) {
+                        isRssiCountReverse = false;
+                        delayRssiCount = 0;
+                    }
+                }else if(rssiArray.size() > 7){
+                    rssiLostCount.add(MyUtil.countRssiNanNumber(rssiArray));
+                    if(MyUtil.judgeCountTrend(rssiLostCount)){
+                        Message tempMsg = new Message();
+                        tempMsg.what = TURN_REVERSE_RSSI;
+                        handler.sendMessage(tempMsg);
+                        isRssiCountReverse = true;
+                    }
+                }
+
 
                 isDis = false;
                 return;
@@ -946,6 +982,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     break;
                 case TURN_REVERSE_RSSI:
                     Toast.makeText(MainActivity.this,"请换一个方向寻找接收得到距离的地方",Toast.LENGTH_SHORT).show();
+                    break;
+                case TURN_REVERSE_NEW:
+                    Toast.makeText(MainActivity.this,"正在从有距离走到没有距离",Toast.LENGTH_SHORT).show();
                     break;
                 default:
                     break;
