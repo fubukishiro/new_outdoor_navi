@@ -86,7 +86,7 @@ public class MyUtil {
         int currentNum = rcvDisArray.size();
 
         int nanCount = 0;
-        for(int i = currentNum - 1 ;i > currentNum - 8;i--){
+        for(int i = currentNum - 1 ;i > currentNum - 4;i--){
            double temp = rcvDisArray.get(i);
             if(temp == 0)
                 nanCount++;

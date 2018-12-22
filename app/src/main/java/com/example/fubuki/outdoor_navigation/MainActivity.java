@@ -195,9 +195,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private List<Integer> rssiLostCount = new ArrayList<Integer>();
 
-    private boolean isAgainFindDis = true; //是否重新找到距离不为0的判断
+    private boolean isAgainFindDis = false; //是否重新找到距离不为0的判断
 
     private boolean isRssiCountReverse = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -403,9 +404,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         bitmap = BitmapDescriptorFactory
                                 .fromResource(R.drawable.icon_temp);
                     }else{
-                        bitmap = BitmapDescriptorFactory
-                                .fromResource(R.drawable.icon_en);
-                        isFinal = true;
+                        if(rcvDis >0){
+                            bitmap = BitmapDescriptorFactory
+                                    .fromResource(R.drawable.icon_en);
+                            isFinal = true;
+                        }else{
+                            bitmap = BitmapDescriptorFactory
+                                    .fromResource(R.drawable.icon_temp);
+                        }
                     }
 
                     if(!isFinal){
@@ -868,9 +874,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 builder.target(ll).zoom(20.0f);
                 mBaiduMap.animateMapStatus(MapStatusUpdateFactory.newMapStatus(builder.build()));
 
-                Message tempMsg2 = new Message();
-                tempMsg2.what = MOVE_FORWARD;
-                handler.sendMessage(tempMsg2);
             }
         }
 
@@ -961,9 +964,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         gpsPointSet.addGpsPoint(minBlindPoint);
                     }
 
-                    if(minBlindPoint.getDistance() > 70.0){
-                        Toast.makeText(MainActivity.this,"请在地图上寻找有信号的位置再重新寻找",Toast.LENGTH_SHORT).show();
-                    }else{
+                    if(minBlindPoint.getDistance() < 70.0 && minBlindPoint.getDistance() > 0.0){
+                        //Toast.makeText(MainActivity.this,"请在地图上寻找有信号的位置再重新寻找",Toast.LENGTH_SHORT).show();
                         mBaiduMap.clear();
                         BitmapDescriptor bitmap = BitmapDescriptorFactory
                                 .fromResource(R.drawable.hint_point);
