@@ -142,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final int TURN_REVERSE_RSSI = 14;
     private static final int TURN_REVERSE_NEW = 15;
 
-    private double rcvDis; //从终端接收回来的距离
+    private double rcvDis = 0; //从终端接收回来的距离
     private double rssi; //从终端接收回来的rssi
 
     private int positionNumber;
@@ -644,6 +644,28 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         break;
                 }
 
+                if(rcvDis == 0.0){
+                    //nan方法判断
+                    Log.e(TAG,"进入rssi count判断");
+                    if(isRssiCountReverse){
+                        delayRssiCount++;
+                        if(delayRssiCount > 6) {
+                            isRssiCountReverse = false;
+                            delayRssiCount = 0;
+                        }
+                    }else if(rssiArray.size() > 7){
+                        Log.e(TAG,"大于7个rssi，进入rssi count判断");
+                        rssiLostCount.add(MyUtil.countRssiNanNumber(rssiArray,mFileLogger));
+                        if(MyUtil.judgeCountTrend(rssiLostCount,mFileLogger)){
+                            Message tempMsg = new Message();
+                            tempMsg.what = TURN_REVERSE_RSSI;
+                            handler.sendMessage(tempMsg);
+                            mFileLogger.writeTxtToFile("NaN的RSSI的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
+                            isRssiCountReverse = true;
+                        }
+                    }
+                }
+
                 if(isDis){
                     //距离序列大于100时清空
                     if(distanceArray.size() > 100){
@@ -744,25 +766,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     handler.sendMessage(tempMsg);
                     mFileLogger.writeTxtToFile("从收到距离到没收到距离的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
                     isAgainFindDis = false;
-                }
-                if(rcvDis == 0){
-                    //nan方法判断
-                    if(isRssiCountReverse){
-                        delayRssiCount++;
-                        if(delayRssiCount > 6) {
-                            isRssiCountReverse = false;
-                            delayRssiCount = 0;
-                        }
-                    }else if(rssiArray.size() > 7){
-                        rssiLostCount.add(MyUtil.countRssiNanNumber(rssiArray,mFileLogger));
-                        if(MyUtil.judgeCountTrend(rssiLostCount,mFileLogger)){
-                            Message tempMsg = new Message();
-                            tempMsg.what = TURN_REVERSE_RSSI;
-                            handler.sendMessage(tempMsg);
-                            mFileLogger.writeTxtToFile("NaN的RSSI的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
-                            isRssiCountReverse = true;
-                        }
-                    }
                 }
 
 
@@ -927,7 +930,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         distanceText.setText("信号强度：强");
                     }*/
                     distanceText.setText("接收距离:"+rcvDis);
-                    if(rcvDis < 10.0){
+                    if(rcvDis < 10.0 && rcvDis >0){
                         Toast.makeText(MainActivity.this,"到达节点附近，请四处张望，寻找节点",Toast.LENGTH_LONG).show();
                     }
                     break;
