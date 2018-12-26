@@ -642,7 +642,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         rssi = (int)convertToDouble(strs[1],0);
                         rssiArray.add(new Rssi(rssi,new Date()));
                         if(isStartRecord)
-                            mFileLogger.writeTxtToFile(new Date().getTime()+"#"+rssi,mFileLogger.getFilePath(),mFileLogger.getFileName());
+                            mFileLogger.writeTxtToFile(rssi+"#"+orientationX,mFileLogger.getFilePath(),mFileLogger.getFileName());
                         Log.e(TAG,"接收到rssi："+ rssi);
                         break;
                     default:
@@ -666,7 +666,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             Message tempMsg = new Message();
                             tempMsg.what = TURN_REVERSE_RSSI;
                             handler.sendMessage(tempMsg);
-                            mFileLogger.writeTxtToFile("NaN的RSSI的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
+                            //mFileLogger.writeTxtToFile("NaN的RSSI的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
                             isRssiCountReverse = true;
                         }
                     }
@@ -770,7 +770,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     Message tempMsg = new Message();
                     tempMsg.what = TURN_REVERSE_NEW;
                     handler.sendMessage(tempMsg);
-                    mFileLogger.writeTxtToFile("从收到距离到没收到距离的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
+                    //mFileLogger.writeTxtToFile("从收到距离到没收到距离的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
                     isAgainFindDis = false;
                 }
 
@@ -986,7 +986,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     break;
                 case NEW_RSSI:
                     TextView rssiText = findViewById(R.id.rssi);
-                    rssiText.setText("接收到的rssi:"+rssi);
+                    rssiText.setText("接收到的rssi:"+rssi+"#"+orientationX);
                     break;
                 case TURN_REVERSE_RSSI:
                     Toast.makeText(MainActivity.this,"请换一个方向寻找接收得到距离的地方",Toast.LENGTH_SHORT).show();
