@@ -999,6 +999,4 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     };//import android.os.Handler;
-
-
 }
