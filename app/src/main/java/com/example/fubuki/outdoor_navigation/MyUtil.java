@@ -50,7 +50,7 @@ public class MyUtil {
 
         }
 
-        //mFileLogger.writeTxtToFile("当前rssi trend count："+ ascendCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
+        mFileLogger.writeTxtToFile("当前rssi trend count："+ ascendCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
         Log.e("judge","当前rssi trend count："+ ascendCount);
 
         if(ascendCount > 3)
@@ -93,7 +93,7 @@ public class MyUtil {
 
         }
 
-        //mFileLogger.writeTxtToFile("当前Dis NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
+        mFileLogger.writeTxtToFile("当前Dis NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
         Log.e("judge","当前Dis NaN count："+ nanCount);
 
         return nanCount;
@@ -110,7 +110,7 @@ public class MyUtil {
 
         }
 
-        //mFileLogger.writeTxtToFile("当前NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
+        mFileLogger.writeTxtToFile("当前NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
         Log.e("judge","当前NaN count："+ nanCount);
 
         return nanCount;
