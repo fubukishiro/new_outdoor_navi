@@ -11,8 +11,8 @@ import java.util.List;
 
 public class MyUtil {
     //判断蓝牙接收距离趋势
-    public static boolean judgeTrend(List<Double> distanceArray){
-        int currentNum = distanceArray.size();
+    public static boolean judgeTrend(List<Double> distanceArray,FileLogger mFileLogger){
+        /*int currentNum = distanceArray.size();
         double d1 = distanceArray.get(currentNum - 1);
         double d2 = distanceArray.get(currentNum - 2);
         double d3 = distanceArray.get(currentNum - 3);
@@ -33,6 +33,23 @@ public class MyUtil {
 
         if(ascendCount > 2)
             return true;
+        else
+            return false;*/
+
+        int currentNum = distanceArray.size();
+        int distanceJudgeSize = 5;
+        int ascendCount = 0;
+        for(int i = currentNum - 1 ;i > currentNum - distanceJudgeSize;i--){
+            double temp1 = distanceArray.get(i);
+            double temp2 = distanceArray.get(i-1);
+
+            if((temp1 - temp2 >= 0)&&(temp2 != 0))
+                ascendCount++;
+
+        }
+        if(ascendCount > Math.floor(distanceJudgeSize/2)){
+            mFileLogger.writeTxtToFile("距离逐渐增大的提示"+ascendCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
+            return true;}
         else
             return false;
     }

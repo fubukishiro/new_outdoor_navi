@@ -737,7 +737,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             delayCount = 0;
                         }
                     }else if(distanceArray.size()>5){
-                        if(MyUtil.judgeTrend(distanceArray)){
+                        if(MyUtil.judgeTrend(distanceArray,mFileLogger)){
                             Message tempMsg = new Message();
                             tempMsg.what = TURN_REVERSE;
                             handler.sendMessage(tempMsg);
