@@ -37,7 +37,7 @@ public class MyUtil {
             return false;*/
 
         int currentNum = distanceArray.size();
-        int distanceJudgeSize = 5;
+        int distanceJudgeSize = 7;
         int ascendCount = 0;
         for(int i = currentNum - 1 ;i > currentNum - distanceJudgeSize;i--){
             double temp1 = distanceArray.get(i);
@@ -48,7 +48,7 @@ public class MyUtil {
 
         }
         if(ascendCount > Math.floor(distanceJudgeSize/2)){
-            mFileLogger.writeTxtToFile("距离逐渐增大的提示"+ascendCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
+            mFileLogger.writeTxtToFile("距离逐渐增大的提示"+distanceArray.get(distanceArray.size()-1)+"#"+distanceArray.get(distanceArray.size()-2)+"#"+distanceArray.get(distanceArray.size()-3)+"#"+distanceArray.get(distanceArray.size()-4)+"#"+distanceArray.get(distanceArray.size()-5)+"#"+distanceArray.get(distanceArray.size()-6),mFileLogger.getFilePath(),mFileLogger.getFileName());
             return true;}
         else
             return false;
