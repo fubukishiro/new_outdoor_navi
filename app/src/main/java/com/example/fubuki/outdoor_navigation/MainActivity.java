@@ -650,7 +650,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         break;
                 }
 
-                if(rcvDis == 0.0){
+                if(Double.isNaN(rcvDis)){
                     //nan方法判断
                     Log.e(TAG,"进入rssi count判断");
                     if(isRssiCountReverse){
@@ -729,9 +729,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
 
                 //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
-                if(rcvDis > 0){
+                if(rcvDis > 0 && isDis){
                     if(isReverse){
                         delayCount ++;
+                        Log.e(TAG,"当前delaycount："+delayCount);
                         if(delayCount > 6) {
                             isReverse = false;
                             delayCount = 0;

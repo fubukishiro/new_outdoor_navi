@@ -47,8 +47,9 @@ public class MyUtil {
                 ascendCount++;
 
         }
+
         if(ascendCount > Math.floor(distanceJudgeSize/2)){
-            mFileLogger.writeTxtToFile("距离逐渐增大的提示"+distanceArray.get(distanceArray.size()-1)+"#"+distanceArray.get(distanceArray.size()-2)+"#"+distanceArray.get(distanceArray.size()-3)+"#"+distanceArray.get(distanceArray.size()-4)+"#"+distanceArray.get(distanceArray.size()-5)+"#"+distanceArray.get(distanceArray.size()-6),mFileLogger.getFilePath(),mFileLogger.getFileName());
+            mFileLogger.writeTxtToFile("距离逐渐增大的提示"+distanceArray.get(currentNum-1)+"#"+distanceArray.get(currentNum-2)+"#"+distanceArray.get(currentNum-3)+"#"+distanceArray.get(currentNum-4)+"#"+distanceArray.get(currentNum-5)+"#"+distanceArray.get(currentNum-6)+"#"+distanceArray.get(currentNum-7),mFileLogger.getFilePath(),mFileLogger.getFileName());
             return true;}
         else
             return false;
@@ -105,7 +106,7 @@ public class MyUtil {
         int nanCount = 0;
         for(int i = currentNum - 1 ;i > currentNum - 4;i--){
            double temp = rcvDisArray.get(i);
-            if(temp == 0)
+            if(Double.isNaN(temp))
                 nanCount++;
 
         }
