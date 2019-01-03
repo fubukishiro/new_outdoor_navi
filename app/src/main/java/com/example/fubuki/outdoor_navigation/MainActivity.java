@@ -831,9 +831,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     bitmap = BitmapDescriptorFactory
                             .fromResource(R.drawable.icon_temp);
 
-                }else{
+                }else if(!Double.isNaN(rcvDis)){
                     bitmap = BitmapDescriptorFactory
                             .fromResource(R.drawable.icon_en);
+                }else{
+                    bitmap = BitmapDescriptorFactory
+                            .fromResource(R.drawable.icon_temp);
                 }
 
                 OverlayOptions option = new MarkerOptions()
