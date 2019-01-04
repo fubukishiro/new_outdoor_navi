@@ -24,7 +24,7 @@ public class TrendJudge {
         if(countDisNanNumber(distanceArray) >2)
             return 1;
 
-        if(distanceArray.get(distanceSize-1) == 0.0 && rssiSize > rssiJudgeSize && rssiArray.get(rssiSize-1) < 0){
+        if(Double.isNaN(distanceArray.get(distanceSize-1)) && rssiSize > rssiJudgeSize && rssiArray.get(rssiSize-1) < 0){
             //收不到距离，但能收到rssi时的距离判断
             rssiLostCount.add(countRssiNanNumber(rssiArray));
             if(judgeRssiCountTrend(rssiLostCount)) {
