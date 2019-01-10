@@ -47,6 +47,7 @@ import com.baidu.mapapi.map.ArcOptions;
 import com.baidu.mapapi.map.BaiduMap;
 import com.baidu.mapapi.map.BitmapDescriptor;
 import com.baidu.mapapi.map.BitmapDescriptorFactory;
+import com.baidu.mapapi.map.CircleOptions;
 import com.baidu.mapapi.map.MapStatus;
 import com.baidu.mapapi.map.MapStatusUpdateFactory;
 import com.baidu.mapapi.map.MapView;
@@ -56,6 +57,7 @@ import com.baidu.mapapi.map.MyLocationData;
 import com.baidu.mapapi.map.OverlayOptions;
 import com.baidu.mapapi.map.Polyline;
 import com.baidu.mapapi.map.PolylineOptions;
+import com.baidu.mapapi.map.Stroke;
 import com.baidu.mapapi.map.TextOptions;
 import com.baidu.mapapi.model.LatLng;
 import com.baidu.mapapi.search.core.SearchResult;
@@ -381,8 +383,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (gpsPointSet.getNodeNumber() > 2) {
 
                     //TODO:计算节点位置的函数接口
-                    Point nodePosition = gpsPointSet.getNodePosition();
-
+                    //Point nodePosition = gpsPointSet.getNodePosition();
+                    PosEstimation nodePosEstimation = gpsPointSet.getNodePosition(currentGpsPoint);
+                    Point nodePosition = nodePosEstimation.getEstimationPos();
                     if (isNaN(nodePosition.getY()) || isNaN(nodePosition.getX()) || nodePosition.getY() == 0.0 || nodePosition.getX() == 0.0) {
                         //计算出的点是NaN或者0的时候，不更新位置
                         return;
@@ -414,6 +417,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         }
                     }
 
+                    OverlayOptions errorCircle = new CircleOptions().fillColor(0x384d73b3)
+                                                    .center(point).stroke(new Stroke(3,0x784d73b3)).radius((int)nodePosEstimation.getPosError());
                     if(!isFinal){
                         Message tempMsg = new Message();
                         tempMsg.what = SHOW_POINT;
@@ -437,6 +442,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     //在地图上添加该文字对象并显示
                     mBaiduMap.addOverlay(textOption);
+                    mBaiduMap.addOverlay(errorCircle);
                 } else {}
             }
         }
@@ -474,7 +480,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             gpsPointSet.addGpsPoint(currentGpsPoint);
             //Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
             if (gpsPointSet.getNodeNumber() > 2) {
-                Point nodePosition = gpsPointSet.getNodePosition();
+                PosEstimation posEstimation = gpsPointSet.getNodePosition(currentGpsPoint);
+
+                Point nodePosition = posEstimation.getEstimationPos();
 
                 lastNodeLatitude = nodePosition.getY();
                 lastNodeLongitude = nodePosition.getX();
