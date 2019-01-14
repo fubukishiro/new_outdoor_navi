@@ -218,7 +218,7 @@ public class GpsNode {
         loraNode.clear();                   //计算生成的节点队列
         if(number <=2)
         {
-            return new PosEstimation(new Point(NaN,NaN),NaN);
+            return new PosEstimation(new Point(NaN,NaN),NaN,new ArrayList<GpsPoint>());
         }
         IterationMethod mIterationMethod = new IterationMethod();
         //对gps序列点进行坏点标记
@@ -258,10 +258,11 @@ public class GpsNode {
             posError = Math.abs(reliableGPSPoint1.getDistance()-dis1) + Math.abs(reliableGPSPoint2.getDistance()-dis2) + Math.abs(reliableGPSPoint3.getDistance()-dis3);
 
             if(loraNode.getX()==NaN&&loraNode.getY()==NaN){
-                return new PosEstimation(new Point(NaN,NaN),NaN);
+                return new PosEstimation(new Point(NaN,NaN),NaN,new ArrayList<GpsPoint>());
             }
             returnNode.addPoint(loraNode);//显示在屏幕上
-            return new PosEstimation(loraNode,posError);
+
+            return new PosEstimation(loraNode,posError,reliablePoint);
             //return new Point(NaN,NaN);
         }else{
             //gps点增多后，重新找到最可靠的三个点
@@ -277,10 +278,10 @@ public class GpsNode {
             posError = Math.abs(reliablePoint.get(0).getDistance()-dis1) + Math.abs(reliablePoint.get(1).getDistance()-dis2) + Math.abs(reliablePoint.get(2).getDistance()-dis3);
 
             if(loraNode.getX()==NaN&&loraNode.getY()==NaN){
-                return new PosEstimation(new Point(NaN,NaN),NaN);
+                return new PosEstimation(new Point(NaN,NaN),NaN,new ArrayList<GpsPoint>());
             }
             returnNode.addPoint(loraNode);//显示在屏幕上
-            return new PosEstimation(loraNode,posError);
+            return new PosEstimation(loraNode,posError,reliablePoint);
         }
     }
 

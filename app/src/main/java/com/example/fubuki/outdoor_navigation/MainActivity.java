@@ -312,6 +312,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         startRecordBtn.setOnClickListener(this);
 
         //mFileLogger.initData();
+        DrawTestPoint();
     }
 
     //传感器监听初始化
@@ -400,8 +401,26 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     LatLng point = new LatLng(nodePosition.getY(), nodePosition.getX());
 
+                    List<OverlayOptions> options = new ArrayList<OverlayOptions>();
+
                     BitmapDescriptor bitmap;
 
+                    //远距离下显示对称点
+                    if(rcvDis > 40 && MyUtil.isWalkingStraight(blindSearchGpsPointSet)){
+                        int currentGpsPointSetNum = blindSearchGpsPointSet.getNodeNumber();
+                        LatLng symmetricP = MyUtil.getSymmetricPoint(blindSearchGpsPointSet.getGpsPoint(currentGpsPointSetNum-1),blindSearchGpsPointSet.getGpsPoint(currentGpsPointSetNum-2),nodePosition);
+                        int symPosError = (int)MyUtil.calculatePositionError(nodePosEstimation.getReliablePoint(),new Point(symmetricP.longitude,symmetricP.latitude));
+
+                        OverlayOptions symErrorCircle = new CircleOptions().fillColor(0x384d73b3)
+                                .center(symmetricP).stroke(new Stroke(3,0x784d73b3)).radius(symPosError);
+                        bitmap = BitmapDescriptorFactory
+                                .fromResource(R.drawable.icon_temp);
+                        OverlayOptions symOption = new MarkerOptions()
+                                .position(point)
+                                .icon(bitmap);
+                        options.add(symErrorCircle);
+                        options.add(symOption);
+                    }
                     //当手机位置距离计算出的节点位置小于10米并且接收到的距离小于5米时，显示终点，否则显示绿色的gps点
                     if(rcvDis > 5){
                         bitmap = BitmapDescriptorFactory
@@ -428,7 +447,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             .position(point)
                             .icon(bitmap);
 
-                    mBaiduMap.addOverlay(option);
+                    options.add(option);
+                    options.add(errorCircle);
 
                     LatLng llText = new LatLng(nodePosition.getY(), nodePosition.getX());
 
@@ -440,9 +460,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             .text(Integer.toString(positionNumber++))
                             .position(llText);
 
-                    //在地图上添加该文字对象并显示
-                    mBaiduMap.addOverlay(textOption);
-                    mBaiduMap.addOverlay(errorCircle);
+                    options.add(textOption);
+
+                    mBaiduMap.addOverlays(options);
                 } else {}
             }
         }
@@ -637,12 +657,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 Log.e(TAG,"接收到包："+msgStr);
                 //拆分数据格式
-                String[] strs = msgStr.split("#");
+                String[] strs = msgStr.split("  ");
                 //Log.e(TAG,"接收到包："+strs[0]);
                 boolean isDis = false;
                 switch(strs[0]){
                     case "dis":
-                        rcvDis = convertToDouble(strs[1],0);
+                        rcvDis = convertToDouble(strs[1].substring(0,3),0);
                         Log.e(TAG,"接收到距离："+rcvDis);
                         isDis = true;
                         break;
@@ -829,7 +849,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             currentLatitude = location.getLatitude();
             currentLongitude = location.getLongitude();
 
-
+            //Log.e(TAG,"当前位置:"+currentLongitude+"#"+currentLatitude);
             if(lastNodeLatitude > 0.0 && lastNodeLongitude > 0.0){
 
                 LatLng point = new LatLng(lastNodeLatitude, lastNodeLongitude);
@@ -1011,4 +1031,51 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     };//import android.os.Handler;
+
+    private void DrawTestPoint(){
+        //LatLng point = new LatLng(30.308767, 120.091941);
+
+        //LatLng linePoint = new LatLng(30.307767, 120.091741);
+        //LatLng linePoint2 = new LatLng(30.309567, 120.091541);
+        GpsPoint linePoint = new GpsPoint(120.091741,30.307767,orientationValues[0],0,0);
+        GpsPoint linePoint2 = new GpsPoint(120.091541,30.309567,orientationValues[0],0,1);
+        Point p = new Point(120.091941,30.308767);
+
+        BitmapDescriptor bitmap;
+
+        LatLng symmetricP = MyUtil.getSymmetricPoint(linePoint,linePoint2,p);
+        List<OverlayOptions> options = new ArrayList<OverlayOptions>();
+
+        bitmap = BitmapDescriptorFactory
+                .fromResource(R.drawable.icon_temp);
+
+        OverlayOptions option = new MarkerOptions()
+                .position(new LatLng(p.getY(),p.getX()))
+                .icon(bitmap);
+
+        OverlayOptions option2 = new MarkerOptions()
+                .position(new LatLng(linePoint.getLatitude(),linePoint.getLongitude()))
+                .icon(bitmap);
+
+        OverlayOptions option3 = new MarkerOptions()
+                .position(new LatLng(linePoint2.getLatitude(),linePoint2.getLongitude()))
+                .icon(bitmap);
+
+        OverlayOptions option4 = new MarkerOptions()
+                .position(symmetricP)
+                .icon(bitmap);
+
+        OverlayOptions errorCircle = new CircleOptions().fillColor(0x384d73b3)
+                .center(new LatLng(p.getY(),p.getX())).stroke(new Stroke(3,0x784d73b3)).radius(20);
+
+        options.add(option);
+        options.add(errorCircle);
+        options.add(option2);
+        options.add(option3);
+        options.add(option4);
+        Log.e(TAG,"对称点："+symmetricP.latitude+"#"+symmetricP.longitude);
+        //mBaiduMap.addOverlay(errorCircle);
+        mBaiduMap.addOverlays(options);
+
+    }
 }
