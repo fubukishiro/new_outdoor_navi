@@ -79,4 +79,5 @@ public class IterationMethod {
         reliableGPSPoint.add(reliableGPSPoint3);
         return reliableGPSPoint;
     }
+
 }

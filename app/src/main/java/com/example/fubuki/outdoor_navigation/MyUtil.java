@@ -25,6 +25,7 @@ public class MyUtil {
         double k1 = (gpsPoint1.getLatitude() - gpsPoint2.getLatitude()) / (gpsPoint1.getLongitude() - gpsPoint2.getLatitude());
         double k2 = (gpsPoint2.getLatitude() - gpsPoint3.getLatitude()) / (gpsPoint2.getLongitude() - gpsPoint3.getLatitude());
 
+        Log.e("walking","walking straight:"+k1+"#"+k2);
         if(Math.abs(k1 - k2) < threshhold)
             return true;
         else
@@ -70,7 +71,7 @@ public class MyUtil {
         }
 
         if(ascendCount > Math.floor(distanceJudgeSize/2)){
-            mFileLogger.writeTxtToFile("距离逐渐增大的提示"+distanceArray.get(currentNum-1)+"#"+distanceArray.get(currentNum-2)+"#"+distanceArray.get(currentNum-3)+"#"+distanceArray.get(currentNum-4)+"#"+distanceArray.get(currentNum-5)+"#"+distanceArray.get(currentNum-6)+"#"+distanceArray.get(currentNum-7),mFileLogger.getFilePath(),mFileLogger.getFileName());
+            //mFileLogger.writeTxtToFile("距离逐渐增大的提示"+distanceArray.get(currentNum-1)+"#"+distanceArray.get(currentNum-2)+"#"+distanceArray.get(currentNum-3)+"#"+distanceArray.get(currentNum-4)+"#"+distanceArray.get(currentNum-5)+"#"+distanceArray.get(currentNum-6)+"#"+distanceArray.get(currentNum-7),mFileLogger.getFilePath(),mFileLogger.getFileName());
             return true;}
         else
             return false;
@@ -89,7 +90,7 @@ public class MyUtil {
 
         }
 
-        mFileLogger.writeTxtToFile("当前rssi trend count："+ ascendCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
+        //mFileLogger.writeTxtToFile("当前rssi trend count："+ ascendCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
         Log.e("judge","当前rssi trend count："+ ascendCount);
 
         if(ascendCount > 3)
@@ -132,7 +133,7 @@ public class MyUtil {
 
         }
 
-        mFileLogger.writeTxtToFile("当前Dis NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
+        //mFileLogger.writeTxtToFile("当前Dis NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
         Log.e("judge","当前Dis NaN count："+ nanCount);
 
         return nanCount;
@@ -149,7 +150,7 @@ public class MyUtil {
 
         }
 
-        mFileLogger.writeTxtToFile("当前NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
+        //mFileLogger.writeTxtToFile("当前NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
         Log.e("judge","当前NaN count："+ nanCount);
 
         return nanCount;
@@ -218,4 +219,48 @@ public class MyUtil {
 
         return posError;
     }
+
+    public static ArrayList<GpsPoint> findMinK(ArrayList<GpsPoint> gpsPointArray, int k){
+        ArrayList<GpsPoint> reliableGPSPoint = new ArrayList<>();
+        for(int i = 0 ;i<k;i++)
+            reliableGPSPoint.add(gpsPointArray.get(i));
+
+        for(int i = k;i<gpsPointArray.size();i++){
+            int maxIndex = findMaxIndex(reliableGPSPoint);
+            if(reliableGPSPoint.get(maxIndex).getCount() > gpsPointArray.get(i).getCount())
+                reliableGPSPoint.set(maxIndex,gpsPointArray.get(i));
+        }
+
+        for(int i = 0;i < k-1;i++)
+            for(int j = 0;j<k-1-i;j++) {
+                if(reliableGPSPoint.get(j).getCount() > reliableGPSPoint.get(j+1).getCount()){
+                    GpsPoint temp;
+                    temp = reliableGPSPoint.get(j);
+                    reliableGPSPoint.set(j,reliableGPSPoint.get(j+1));
+                    reliableGPSPoint.set(j+1,temp);
+                }
+            }
+
+        return reliableGPSPoint;
+    }
+
+    public static int findMaxIndex(ArrayList<GpsPoint> gpsPointArray){
+        int maxIndex = 0;
+        int length = gpsPointArray.size();
+        for(int i = 0;i<length;i++){
+            if(gpsPointArray.get(i).getCount() > gpsPointArray.get(maxIndex).getCount())
+                maxIndex = i;
+        }
+        return maxIndex;
+    }
+
+    public static int findMinErrorPoint(ArrayList<PosEstimation> posEstimationArray){
+        int minErrorIndex = 0;
+        for(int i = 0; i < posEstimationArray.size();i++){
+            if(posEstimationArray.get(i).getPosError() < posEstimationArray.get(minErrorIndex).getPosError())
+                minErrorIndex = i;
+        }
+        return minErrorIndex;
+    }
+
 }

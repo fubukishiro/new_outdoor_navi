@@ -211,14 +211,16 @@ public class GpsNode {
 
 
     //基于最可靠的三个点计算位置
-    public PosEstimation getNodePosition(GpsPoint currentGpsPoint){
+    public ArrayList<PosEstimation> getNodePosition(GpsPoint currentGpsPoint){
+        ArrayList<PosEstimation> posEstimationArray = new ArrayList<PosEstimation>();
         int number = gpsPointArray.size();  //手机采样点的数量
         double posError = NaN;
         GpsPoint currentLocation = currentGpsPoint;
         loraNode.clear();                   //计算生成的节点队列
         if(number <=2)
         {
-            return new PosEstimation(new Point(NaN,NaN),NaN,new ArrayList<GpsPoint>());
+            posEstimationArray.add(new PosEstimation(new Point(NaN,NaN),NaN,new ArrayList<GpsPoint>()));
+            return posEstimationArray;
         }
         IterationMethod mIterationMethod = new IterationMethod();
         //对gps序列点进行坏点标记
@@ -258,20 +260,29 @@ public class GpsNode {
             posError = Math.abs(reliableGPSPoint1.getDistance()-dis1) + Math.abs(reliableGPSPoint2.getDistance()-dis2) + Math.abs(reliableGPSPoint3.getDistance()-dis3);
 
             if(loraNode.getX()==NaN&&loraNode.getY()==NaN){
-                return new PosEstimation(new Point(NaN,NaN),NaN,new ArrayList<GpsPoint>());
+                posEstimationArray.add(new PosEstimation(new Point(NaN,NaN),NaN,new ArrayList<GpsPoint>()));
+                return posEstimationArray;
             }
             returnNode.addPoint(loraNode);//显示在屏幕上
 
-            return new PosEstimation(loraNode,posError,reliablePoint);
+            posEstimationArray.add(new PosEstimation(loraNode,posError,reliablePoint));
+            return posEstimationArray;
             //return new Point(NaN,NaN);
         }else{
             //gps点增多后，重新找到最可靠的三个点
-            reliablePoint = mIterationMethod.newReliablePoint(reliablePoint,gpsPointArray);
+            //reliablePoint = mIterationMethod.newReliablePoint(reliablePoint,gpsPointArray);
+            reliablePoint = MyUtil.findMinK(gpsPointArray,4);
+
             Log.e("leastSquare","最可靠三点的距离"+reliablePoint.get(0).getDistance()+"-"+reliablePoint.get(1).getDistance()+"-"+reliablePoint.get(2).getDistance());
             Log.e("leastSquare","最可靠三点的count值"+reliablePoint.get(0).getCount()+"-"+reliablePoint.get(1).getCount()+"-"+reliablePoint.get(2).getCount());
             mFileLogger.writeTxtToFile("可靠count"+reliablePoint.get(0).getCount()+"-"+reliablePoint.get(1).getCount()+"-"+reliablePoint.get(2).getCount()+"#"+"可靠距离"+reliablePoint.get(0).getDistance()+"-"+reliablePoint.get(1).getDistance()+"-"+reliablePoint.get(2).getDistance(),mFileLogger.getFilePath(),mFileLogger.getFileName());
 
-            Point loraNode = newtonIteration(reliablePoint);
+            //进一步根据组合封装一个计算目标位置的函数
+            posEstimationArray.add(getPosEstimation(reliablePoint.get(0),reliablePoint.get(1),reliablePoint.get(2)));
+            posEstimationArray.add(getPosEstimation(reliablePoint.get(0),reliablePoint.get(1),reliablePoint.get(3)));
+            posEstimationArray.add(getPosEstimation(reliablePoint.get(0),reliablePoint.get(2),reliablePoint.get(3)));
+            posEstimationArray.add(getPosEstimation(reliablePoint.get(1),reliablePoint.get(2),reliablePoint.get(3)));
+            /*Point loraNode = newtonIteration(reliablePoint);
             double dis1 =  DistanceUtil.getDistance(new LatLng(reliablePoint.get(0).getLatitude(),reliablePoint.get(0).getLongitude()),new LatLng(loraNode.getY(),loraNode.getX()));
             double dis2 =  DistanceUtil.getDistance(new LatLng(reliablePoint.get(1).getLatitude(),reliablePoint.get(1).getLongitude()),new LatLng(loraNode.getY(),loraNode.getX()));
             double dis3 =  DistanceUtil.getDistance(new LatLng(reliablePoint.get(2).getLatitude(),reliablePoint.get(2).getLongitude()),new LatLng(loraNode.getY(),loraNode.getX()));
@@ -281,8 +292,28 @@ public class GpsNode {
                 return new PosEstimation(new Point(NaN,NaN),NaN,new ArrayList<GpsPoint>());
             }
             returnNode.addPoint(loraNode);//显示在屏幕上
-            return new PosEstimation(loraNode,posError,reliablePoint);
+            return new PosEstimation(loraNode,posError,reliablePoint);*/
+            return posEstimationArray;
         }
     }
 
+    private static PosEstimation getPosEstimation(GpsPoint point1,GpsPoint point2,GpsPoint point3){
+        ArrayList<GpsPoint> calculatedPoint = new ArrayList<>();
+        double posError = NaN;
+        calculatedPoint.add(point1);
+        calculatedPoint.add(point2);
+        calculatedPoint.add(point3);
+
+        Point loraNode = newtonIteration(calculatedPoint);
+        double dis1 =  DistanceUtil.getDistance(new LatLng(calculatedPoint.get(0).getLatitude(),calculatedPoint.get(0).getLongitude()),new LatLng(loraNode.getY(),loraNode.getX()));
+        double dis2 =  DistanceUtil.getDistance(new LatLng(calculatedPoint.get(1).getLatitude(),calculatedPoint.get(1).getLongitude()),new LatLng(loraNode.getY(),loraNode.getX()));
+        double dis3 =  DistanceUtil.getDistance(new LatLng(calculatedPoint.get(2).getLatitude(),calculatedPoint.get(2).getLongitude()),new LatLng(loraNode.getY(),loraNode.getX()));
+        posError = Math.abs(calculatedPoint.get(0).getDistance()-dis1) + Math.abs(calculatedPoint.get(1).getDistance()-dis2) + Math.abs(calculatedPoint.get(2).getDistance()-dis3);
+
+        if(loraNode.getX()==NaN&&loraNode.getY()==NaN){
+            return new PosEstimation(new Point(NaN,NaN),NaN,new ArrayList<GpsPoint>());
+        }
+        returnNode.addPoint(loraNode);//显示在屏幕上
+        return new PosEstimation(loraNode,posError,calculatedPoint);
+    }
 }

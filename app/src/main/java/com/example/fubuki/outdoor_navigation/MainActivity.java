@@ -77,6 +77,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import static com.example.fubuki.outdoor_navigation.MyUtil.convertToDouble;
+import static com.example.fubuki.outdoor_navigation.MyUtil.findMinErrorPoint;
 import static com.example.fubuki.outdoor_navigation.MyUtil.searchMinPoint;
 import static java.lang.Double.MAX_VALUE;
 import static java.lang.Double.NaN;
@@ -385,8 +386,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     //TODO:计算节点位置的函数接口
                     //Point nodePosition = gpsPointSet.getNodePosition();
-                    PosEstimation nodePosEstimation = gpsPointSet.getNodePosition(currentGpsPoint);
-                    Point nodePosition = nodePosEstimation.getEstimationPos();
+                    ArrayList<PosEstimation> posEstimationArray = new ArrayList<PosEstimation>();
+                    posEstimationArray = gpsPointSet.getNodePosition(currentGpsPoint);
+
+                    Point nodePosition = posEstimationArray.get(0).getEstimationPos();
+                    Log.e(TAG,"计算出目标位置："+nodePosition.getY()+"#"+nodePosition.getX());
                     if (isNaN(nodePosition.getY()) || isNaN(nodePosition.getX()) || nodePosition.getY() == 0.0 || nodePosition.getX() == 0.0) {
                         //计算出的点是NaN或者0的时候，不更新位置
                         return;
@@ -405,28 +409,56 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     BitmapDescriptor bitmap;
 
+                    if(MyUtil.isWalkingStraight(blindSearchGpsPointSet)){
+                        Log.e(TAG,"在走直线！");
+                    }
+
                     //远距离下显示对称点
-                    if(rcvDis > 40 && MyUtil.isWalkingStraight(blindSearchGpsPointSet)){
+                    /*if(rcvDis > 40 && MyUtil.isWalkingStraight(blindSearchGpsPointSet)){
                         int currentGpsPointSetNum = blindSearchGpsPointSet.getNodeNumber();
                         LatLng symmetricP = MyUtil.getSymmetricPoint(blindSearchGpsPointSet.getGpsPoint(currentGpsPointSetNum-1),blindSearchGpsPointSet.getGpsPoint(currentGpsPointSetNum-2),nodePosition);
                         int symPosError = (int)MyUtil.calculatePositionError(nodePosEstimation.getReliablePoint(),new Point(symmetricP.longitude,symmetricP.latitude));
 
                         OverlayOptions symErrorCircle = new CircleOptions().fillColor(0x384d73b3)
-                                .center(symmetricP).stroke(new Stroke(3,0x784d73b3)).radius(symPosError);
+                                .center(symmetricP).stroke(new Stroke(3,0x784d73b3)).radius(symPosError*10);
                         bitmap = BitmapDescriptorFactory
                                 .fromResource(R.drawable.icon_temp);
                         OverlayOptions symOption = new MarkerOptions()
-                                .position(point)
+                                .position(symmetricP)
                                 .icon(bitmap);
                         options.add(symErrorCircle);
                         options.add(symOption);
+                    }*/
+                    //显示多解
+                    if(rcvDis > 20){
+                        int minErrorIndex = findMinErrorPoint(posEstimationArray);
+                        double minError = posEstimationArray.get(minErrorIndex).getPosError();
+                        for(int i = 1;i<posEstimationArray.size();i++){
+                            Point tempPos = posEstimationArray.get(i).getEstimationPos();
+                            double tempError = posEstimationArray.get(i).getPosError();
+                            bitmap = BitmapDescriptorFactory
+                                    .fromResource(R.drawable.icon_temp);
+                            if(isNaN(tempPos.getY()) || isNaN(tempPos.getX()))
+                                continue;
+                            //相差不大的时候才把结果加进去
+                            if(Math.abs(tempError - minError)/minError < 0.5){
+                                OverlayOptions option = new MarkerOptions()
+                                        .position(new LatLng(tempPos.getY(),tempPos.getX()))
+                                        .icon(bitmap);
+                                OverlayOptions errorCircle = new CircleOptions().fillColor(0x384d73b3)
+                                        .center(new LatLng(tempPos.getY(),tempPos.getX())).stroke(new Stroke(3,0x784d73b3)).radius((int)posEstimationArray.get(i).getPosError());
+
+                                options.add(errorCircle);
+                                options.add(option);
+                            }
+                        }
                     }
                     //当手机位置距离计算出的节点位置小于10米并且接收到的距离小于5米时，显示终点，否则显示绿色的gps点
                     if(rcvDis > 5){
                         bitmap = BitmapDescriptorFactory
                                 .fromResource(R.drawable.icon_temp);
                     }else{
-                        if(rcvDis >0){
+                        if(rcvDis >0 && DistanceUtil.getDistance(p1,new LatLng(nodePosition.getY(),nodePosition.getX())) < 10){
                             bitmap = BitmapDescriptorFactory
                                     .fromResource(R.drawable.icon_en);
                             isFinal = true;
@@ -437,7 +469,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }
 
                     OverlayOptions errorCircle = new CircleOptions().fillColor(0x384d73b3)
-                                                    .center(point).stroke(new Stroke(3,0x784d73b3)).radius((int)nodePosEstimation.getPosError());
+                                                    .center(point).stroke(new Stroke(3,0x784d73b3)).radius((int)posEstimationArray.get(0).getPosError());
                     if(!isFinal){
                         Message tempMsg = new Message();
                         tempMsg.what = SHOW_POINT;
@@ -500,9 +532,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             gpsPointSet.addGpsPoint(currentGpsPoint);
             //Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
             if (gpsPointSet.getNodeNumber() > 2) {
-                PosEstimation posEstimation = gpsPointSet.getNodePosition(currentGpsPoint);
+                ArrayList<PosEstimation> posEstimationArray = new ArrayList<>();
+                posEstimationArray = gpsPointSet.getNodePosition(currentGpsPoint);
 
-                Point nodePosition = posEstimation.getEstimationPos();
+                Point nodePosition = posEstimationArray.get(0).getEstimationPos();
 
                 lastNodeLatitude = nodePosition.getY();
                 lastNodeLongitude = nodePosition.getX();
@@ -657,13 +690,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 Log.e(TAG,"接收到包："+msgStr);
                 //拆分数据格式
-                String[] strs = msgStr.split("  ");
-                //Log.e(TAG,"接收到包："+strs[0]);
-                boolean isDis = false;
-                switch(strs[0]){
+                String[] strs = msgStr.split("#");
+                //Log.e(TAG,"strs1:"+strs[0].length());
+
+                boolean isDis = true;
+                /*switch(strs[0]){
                     case "dis":
-                        rcvDis = convertToDouble(strs[1].substring(0,3),0);
-                        Log.e(TAG,"接收到距离："+rcvDis);
+                        rcvDis = convertToDouble(strs[1].substring(0,strs[1].length()-5),0);
+                        if(rcvDis==0){
+                            rcvDis = convertToDouble(strs[1].substring(0,strs[1].length()-4),0);
+                        }
+                        Log.e(TAG,"接收到距离："+strs[1].substring(0,strs[1].length()-3));
                         isDis = true;
                         break;
                     case "rssi":
@@ -676,8 +713,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     default:
                         System.out.println("unknown");
                         break;
-                }
-
+                }*/
+                rcvDis = convertToDouble(strs[1],0);
+                rssi = convertToDouble(strs[2],0);
+                if(rcvDis == 0)
+                    rcvDis = NaN;
+                if(rssi == 0)
+                    rssi = NaN;
                 if(Double.isNaN(rcvDis)){
                     //nan方法判断
                     Log.e(TAG,"进入rssi count判断");
@@ -694,13 +736,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             Message tempMsg = new Message();
                             tempMsg.what = TURN_REVERSE_RSSI;
                             handler.sendMessage(tempMsg);
-                            mFileLogger.writeTxtToFile("NaN的RSSI的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
+                            //mFileLogger.writeTxtToFile("NaN的RSSI的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
                             isRssiCountReverse = true;
                         }
                     }
                 }
 
-                if(isDis){
+                //if(isDis){
                     //距离序列大于100时清空
                     if(distanceArray.size() > 100){
                         distanceArray.clear();
@@ -711,6 +753,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     if(rcvDis > 0) {
                         //盲走序列采样
                         blindSearchGpsPointSet.addGpsPoint(new GpsPoint(currentLongitude, currentLatitude, orientationValues[0], rcvDis, gpsPointSet.getNodeNumber()));
+                        if(isStartRecord)
+                            mFileLogger.writeTxtToFile("GPS info:"+currentLatitude+"#"+currentLongitude+"#"+rcvDis,mFileLogger.getFilePath(),mFileLogger.getFileName());
                         isAgainFindDis = true;
                     }
                     //当接收到的蓝牙距离过大时，提示用户回到一个起始点
@@ -722,7 +766,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     if(rcvDis < minArrayDis && rcvDis>0){
                         minArrayDis = rcvDis;
-                        validDistance = minArrayDis;
+                        //validDistance = minArrayDis;
                         Log.e("least","当前动态阈值:"+validDistance);
                     }
 
@@ -750,11 +794,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         prevSampleLongitude = currentLongitude;
                     }
 
-                }else{
-                    Message tempMsg = new Message();
-                    tempMsg.what = NEW_RSSI;
+                //}else{
+                    Message tempMsg2 = new Message();
+                    tempMsg2.what = NEW_RSSI;
                     handler.sendMessage(tempMsg);
-                }
+                //}
 
                 //判断蓝牙距离的趋势，若逐渐远离则提示用户往回走
                 if(rcvDis > 0 && isDis){
@@ -767,8 +811,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         }
                     }else if(distanceArray.size()>5){
                         if(MyUtil.judgeTrend(distanceArray,mFileLogger)){
-                            Message tempMsg = new Message();
-                            tempMsg.what = TURN_REVERSE;
+                            Message tempMsg3 = new Message();
+                            tempMsg3.what = TURN_REVERSE;
                             handler.sendMessage(tempMsg);
                             isReverse = true;
                         }
@@ -783,8 +827,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             Log.e(TAG,"进入rssi时间戳判断");
                             if(MyUtil.judgeTimeStamp(rssiArray)){
                                 Log.e(TAG,"rssi提示");
-                                Message tempMsg = new Message();
-                                tempMsg.what = TURN_REVERSE_RSSI;
+                                Message tempMsg4 = new Message();
+                                tempMsg4.what = TURN_REVERSE_RSSI;
                                 handler.sendMessage(tempMsg);
                                 isReverse = true;
                                 is_hint_rssi = true;
@@ -796,10 +840,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 //用于从收到距离移动到没收到距离的情况
                 if(MyUtil.countDisNanNumber(distanceArray,mFileLogger) > 2 && isAgainFindDis){
-                    Message tempMsg = new Message();
-                    tempMsg.what = TURN_REVERSE_NEW;
+                    Message tempMsg5 = new Message();
+                    tempMsg5.what = TURN_REVERSE_NEW;
                     handler.sendMessage(tempMsg);
-                    mFileLogger.writeTxtToFile("从收到距离到没收到距离的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
+                    //mFileLogger.writeTxtToFile("从收到距离到没收到距离的提示",mFileLogger.getFilePath(),mFileLogger.getFileName());
                     isAgainFindDis = false;
                 }
 
@@ -965,6 +1009,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         distanceText.setText("信号强度：强");
                     }*/
                     distanceText.setText("接收距离:"+rcvDis);
+                    TextView rssiText = findViewById(R.id.rssi);
+                    rssiText.setText("接收到的rssi:"+rssi);
+                    TextView locationText = findViewById(R.id.location);
+                    locationText.setText("当前位置:"+currentLatitude+"#"+currentLongitude);
                     if(rcvDis < 10.0 && rcvDis >0){
                         Toast.makeText(MainActivity.this,"到达节点附近，请四处张望，寻找节点",Toast.LENGTH_LONG).show();
                     }
@@ -1017,8 +1065,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }
                     break;
                 case NEW_RSSI:
-                    TextView rssiText = findViewById(R.id.rssi);
-                    rssiText.setText("接收到的rssi:"+rssi);
+                    //TextView rssiText = findViewById(R.id.rssi);
+                    //rssiText.setText("接收到的rssi:"+rssi);
                     break;
                 case TURN_REVERSE_RSSI:
                     Toast.makeText(MainActivity.this,"请换一个方向寻找接收得到距离的地方",Toast.LENGTH_SHORT).show();
