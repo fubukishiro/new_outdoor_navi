@@ -313,7 +313,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         startRecordBtn.setOnClickListener(this);
 
         //mFileLogger.initData();
-        DrawTestPoint();
+        //DrawTestPoint();
     }
 
     //传感器监听初始化
@@ -374,13 +374,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             Log.e(TAG,"线程重新恢复 in checkDistance");
 
-            //当接收距离小于30米，才把当前GPS添加进去
+            //当接收距离小于有效阈值且不为0时，才把当前GPS添加进去
             if(rcvDis <= validDistance && rcvDis > 0) {
                 GpsPoint currentGpsPoint = new GpsPoint(currentLongitude, currentLatitude, orientationValues[0], rcvDis, gpsPointSet.getNodeNumber());
 
                 gpsPointSet.addGpsPoint(currentGpsPoint);
-                //Log.e(TAG, "当前采样的GPS点相关信息：" + currentGpsPoint.getLatitude() + "#" + currentGpsPoint.getLongitude() + "#当前接收到的距离:" + rcvDis);
-
                 //当计算用的采样gps序列中的点数大于2时，计算位置
                 if (gpsPointSet.getNodeNumber() > 2) {
 
@@ -388,6 +386,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     //Point nodePosition = gpsPointSet.getNodePosition();
                     ArrayList<PosEstimation> posEstimationArray = new ArrayList<PosEstimation>();
                     posEstimationArray = gpsPointSet.getNodePosition(currentGpsPoint);
+
+                    //使得posEstimationArray的第一个元素误差最小(rt)
+                    int minErrorIndex = findMinErrorPoint(posEstimationArray);
+                    PosEstimation temp;
+                    temp = posEstimationArray.get(minErrorIndex);
+                    posEstimationArray.set(minErrorIndex,posEstimationArray.get(0));
+                    posEstimationArray.set(0, temp);
 
                     Point nodePosition = posEstimationArray.get(0).getEstimationPos();
                     Log.e(TAG,"计算出目标位置："+nodePosition.getY()+"#"+nodePosition.getX());
@@ -408,6 +413,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     List<OverlayOptions> options = new ArrayList<OverlayOptions>();
 
                     BitmapDescriptor bitmap;
+
+                    //使得posEstimationArray的第一个元素及时显示(rt)
+                    bitmap = BitmapDescriptorFactory
+                            .fromResource(R.drawable.icon_temp);
+                        OverlayOptions option = new MarkerOptions()
+                                .position(point)
+                                .icon(bitmap);
+                        OverlayOptions errorCircle = new CircleOptions().fillColor(0x384d73b3)
+                                .center(point).stroke(new Stroke(3,0x784d73b3)).radius((int)posEstimationArray.get(0).getPosError());
+                        options.add(errorCircle);
+                        options.add(option);
 
                     if(MyUtil.isWalkingStraight(blindSearchGpsPointSet)){
                         Log.e(TAG,"在走直线！");
@@ -431,8 +447,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }*/
                     //显示多解
                     if(rcvDis > 20){
-                        int minErrorIndex = findMinErrorPoint(posEstimationArray);
-                        double minError = posEstimationArray.get(minErrorIndex).getPosError();
+                        double minError = posEstimationArray.get(0).getPosError();
                         for(int i = 1;i<posEstimationArray.size();i++){
                             Point tempPos = posEstimationArray.get(i).getEstimationPos();
                             double tempError = posEstimationArray.get(i).getPosError();
@@ -442,10 +457,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                 continue;
                             //相差不大的时候才把结果加进去
                             if(Math.abs(tempError - minError)/minError < 0.5){
-                                OverlayOptions option = new MarkerOptions()
+                                option = new MarkerOptions()
                                         .position(new LatLng(tempPos.getY(),tempPos.getX()))
                                         .icon(bitmap);
-                                OverlayOptions errorCircle = new CircleOptions().fillColor(0x384d73b3)
+                                errorCircle = new CircleOptions().fillColor(0x384d73b3)
                                         .center(new LatLng(tempPos.getY(),tempPos.getX())).stroke(new Stroke(3,0x784d73b3)).radius((int)posEstimationArray.get(i).getPosError());
 
                                 options.add(errorCircle);
@@ -468,19 +483,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         }
                     }
 
-                    OverlayOptions errorCircle = new CircleOptions().fillColor(0x384d73b3)
-                                                    .center(point).stroke(new Stroke(3,0x784d73b3)).radius((int)posEstimationArray.get(0).getPosError());
                     if(!isFinal){
                         Message tempMsg = new Message();
                         tempMsg.what = SHOW_POINT;
                         handler.sendMessage(tempMsg);
                     }
-                    OverlayOptions option = new MarkerOptions()
+                    option = new MarkerOptions()
                             .position(point)
                             .icon(bitmap);
 
                     options.add(option);
-                    options.add(errorCircle);
 
                     LatLng llText = new LatLng(nodePosition.getY(), nodePosition.getX());
 
@@ -1080,9 +1092,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };//import android.os.Handler;
 
-    private void DrawTestPoint(){
+/*    private void DrawTestPoint(){
         //LatLng point = new LatLng(30.308767, 120.091941);
-
         //LatLng linePoint = new LatLng(30.307767, 120.091741);
         //LatLng linePoint2 = new LatLng(30.309567, 120.091541);
         GpsPoint linePoint = new GpsPoint(120.091741,30.307767,orientationValues[0],0,0);
@@ -1125,5 +1136,5 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         //mBaiduMap.addOverlay(errorCircle);
         mBaiduMap.addOverlays(options);
 
-    }
+    }*/
 }

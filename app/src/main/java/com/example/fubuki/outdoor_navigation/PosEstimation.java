@@ -18,7 +18,6 @@ public class PosEstimation {
     public double getPosError(){
         return obj;
     }
-
     public ArrayList<GpsPoint> getReliablePoint() {
         return reliablePoint;
     }

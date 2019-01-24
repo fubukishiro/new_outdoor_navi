@@ -25,7 +25,6 @@ public class MyUtil {
         double k1 = (gpsPoint1.getLatitude() - gpsPoint2.getLatitude()) / (gpsPoint1.getLongitude() - gpsPoint2.getLatitude());
         double k2 = (gpsPoint2.getLatitude() - gpsPoint3.getLatitude()) / (gpsPoint2.getLongitude() - gpsPoint3.getLatitude());
 
-        Log.e("walking","walking straight:"+k1+"#"+k2);
         if(Math.abs(k1 - k2) < threshhold)
             return true;
         else
@@ -34,29 +33,6 @@ public class MyUtil {
     }
     //判断蓝牙接收距离趋势
     public static boolean judgeTrend(List<Double> distanceArray,FileLogger mFileLogger){
-        /*int currentNum = distanceArray.size();
-        double d1 = distanceArray.get(currentNum - 1);
-        double d2 = distanceArray.get(currentNum - 2);
-        double d3 = distanceArray.get(currentNum - 3);
-        double d4 = distanceArray.get(currentNum - 4);
-        double d5 = distanceArray.get(currentNum - 5);
-
-        Log.e("distance judge","distance is:"+d1+"#"+d2+"#"+d3+"#"+d4);
-        int ascendCount = 0;
-
-        if(d1 - d2 >=0 && d1!=0 && d2!=0)
-            ascendCount++;
-        if(d2 - d3 >= 0 &&d1!=0 && d2!=0)
-            ascendCount++;
-        if(d3 - d4 >= 0 && d1!=0 && d2!=0)
-            ascendCount++;
-        if(d4 - d5 >= 0 && d1!=0 && d2!=0)
-            ascendCount++;
-
-        if(ascendCount > 2)
-            return true;
-        else
-            return false;*/
 
         int currentNum = distanceArray.size();
         int distanceJudgeSize = 7;
@@ -91,8 +67,6 @@ public class MyUtil {
         }
 
         //mFileLogger.writeTxtToFile("当前rssi trend count："+ ascendCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
-        Log.e("judge","当前rssi trend count："+ ascendCount);
-
         if(ascendCount > 3)
             return true;
         else
@@ -114,7 +88,6 @@ public class MyUtil {
                 descendCount++;*/
         }
 
-        Log.e("judge","当前count："+lostCount);
 
         if(lostCount > 3)
             return true;
@@ -134,10 +107,9 @@ public class MyUtil {
         }
 
         //mFileLogger.writeTxtToFile("当前Dis NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
-        Log.e("judge","当前Dis NaN count："+ nanCount);
-
         return nanCount;
     }
+
     public static int countRssiNanNumber(List<Rssi> rssiArray,FileLogger mFileLogger){
         int currentNum = rssiArray.size();
 
@@ -151,8 +123,6 @@ public class MyUtil {
         }
 
         //mFileLogger.writeTxtToFile("当前NaN count："+ nanCount,mFileLogger.getFilePath(),mFileLogger.getFileName());
-        Log.e("judge","当前NaN count："+ nanCount);
-
         return nanCount;
     }
     //寻找盲走序列中距离最小的点
@@ -210,40 +180,38 @@ public class MyUtil {
         return new LatLng(symY,symX);
     }
 
-    public static double calculatePositionError(ArrayList<GpsPoint> reliablePoint,Point estimatePos){
-        double posError;
-        double dis1 =  DistanceUtil.getDistance(new LatLng(reliablePoint.get(0).getLatitude(),reliablePoint.get(0).getLongitude()),new LatLng(estimatePos.getY(),estimatePos.getX()));
-        double dis2 =  DistanceUtil.getDistance(new LatLng(reliablePoint.get(1).getLatitude(),reliablePoint.get(1).getLongitude()),new LatLng(estimatePos.getY(),estimatePos.getX()));
-        double dis3 =  DistanceUtil.getDistance(new LatLng(reliablePoint.get(2).getLatitude(),reliablePoint.get(2).getLongitude()),new LatLng(estimatePos.getY(),estimatePos.getX()));
-        posError = Math.abs(reliablePoint.get(0).getDistance()-dis1) + Math.abs(reliablePoint.get(1).getDistance()-dis2) + Math.abs(reliablePoint.get(2).getDistance()-dis3);
 
-        return posError;
-    }
-
+    //找到count最小（最可靠）的k个点
     public static ArrayList<GpsPoint> findMinK(ArrayList<GpsPoint> gpsPointArray, int k){
         ArrayList<GpsPoint> reliableGPSPoint = new ArrayList<>();
+        //赋初始K个值
         for(int i = 0 ;i<k;i++)
             reliableGPSPoint.add(gpsPointArray.get(i));
 
-        for(int i = k;i<gpsPointArray.size();i++){
-            int maxIndex = findMaxIndex(reliableGPSPoint);
-            if(reliableGPSPoint.get(maxIndex).getCount() > gpsPointArray.get(i).getCount())
-                reliableGPSPoint.set(maxIndex,gpsPointArray.get(i));
-        }
-
-        for(int i = 0;i < k-1;i++)
-            for(int j = 0;j<k-1-i;j++) {
-                if(reliableGPSPoint.get(j).getCount() > reliableGPSPoint.get(j+1).getCount()){
-                    GpsPoint temp;
-                    temp = reliableGPSPoint.get(j);
-                    reliableGPSPoint.set(j,reliableGPSPoint.get(j+1));
-                    reliableGPSPoint.set(j+1,temp);
-                }
+        if(gpsPointArray.size()==4){
+            return reliableGPSPoint;
+        }else {
+            //使reliableGPSPoint中的K个点是序列中最可靠的k个
+            for (int i = k; i < gpsPointArray.size(); i++) {
+                int maxIndex = findMaxIndex(reliableGPSPoint);
+                if (reliableGPSPoint.get(maxIndex).getCount() > gpsPointArray.get(i).getCount())
+                    reliableGPSPoint.set(maxIndex, gpsPointArray.get(i));
             }
+            //将reliableGPSPoint中的K个点按增序（非降序）排列
+            for (int i = 0; i < k - 1; i++)
+                for (int j = 0; j < k - 1 - i; j++) {
+                    if (reliableGPSPoint.get(j).getCount() > reliableGPSPoint.get(j + 1).getCount()) {
+                        GpsPoint temp;
+                        temp = reliableGPSPoint.get(j);
+                        reliableGPSPoint.set(j, reliableGPSPoint.get(j + 1));
+                        reliableGPSPoint.set(j + 1, temp);
+                    }
+                }
 
-        return reliableGPSPoint;
+            return reliableGPSPoint;
+        }
     }
-
+    //找到count最大的点的下标
     public static int findMaxIndex(ArrayList<GpsPoint> gpsPointArray){
         int maxIndex = 0;
         int length = gpsPointArray.size();
@@ -253,7 +221,7 @@ public class MyUtil {
         }
         return maxIndex;
     }
-
+    //找到算出来的四个点里面误差最小的点的下标
     public static int findMinErrorPoint(ArrayList<PosEstimation> posEstimationArray){
         int minErrorIndex = 0;
         for(int i = 0; i < posEstimationArray.size();i++){
